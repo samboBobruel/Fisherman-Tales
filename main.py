@@ -21,8 +21,6 @@ screenY = 0
 WIDTH, HEIGHT = 480*resolutionScale, 270*resolutionScale
 icon = pygame.image.load("img/icon.png")
 
-# print("FUCK YOUUU")
-
 screen = pygame.display.set_mode((WIDTH, HEIGHT),0,256,0,0)
 screenS = pygame.Surface((WIDTH + screenX, HEIGHT))
 pygame.display.set_caption("Fisherman Tales")
