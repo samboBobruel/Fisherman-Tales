@@ -1,4 +1,4 @@
-import pygame, random, math, os, json, numpy, bezier
+import pygame, random, math, os, json, numpy
 
 pygame.init()
 
