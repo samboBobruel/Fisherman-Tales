@@ -1,4 +1,4 @@
-import pygame, random, math, os
+import pygame, random, math, os, json, numpy, bezier
 
 pygame.init()
 
@@ -13,6 +13,12 @@ def equalPlusMinus(value1, value2, plusMinus):
     if value1 + plusMinus < value2 or value1 - plusMinus > value2:
         return False
     return True
+
+def angle(A, B, aspectRatio):
+    x = B[0] - A[0]
+    y = B[1] - A[1]
+    angle = math.atan2(-y, x / aspectRatio)
+    return angle
 
 resolutionScale = 2
 screenX = 0
@@ -85,18 +91,23 @@ class MenuScreen(Screen):
             self.currentBackground = self.backgroundFunny
             self.guyFall = True
 
+    def easterEgg(self):
+        self.gX += 1
+        self.gY += 2
+        self.angle -= 1
+        self.guyFallingR  = pygame.transform.rotate(self.guyFalling, self.angle)
+        screenS.blit(self.guyFallingR, [self.gX, self.gY])
+        if self.gY > HEIGHT:
+            self.guyFall = False
+        print("FALLIIING", random.randint(10, 1000))
+
     def update(self):
         screenS.blit(self.currentBackground, [0,0])
         self.startButton.update()
         self.optionsButton.update()
         screenS.blit(self.chains, self.chainsRect)
-
         if self.guyFall:
-            self.gX += 1
-            self.gY += 2
-            self.angle -= 1
-            self.guyFallingR  = pygame.transform.rotate(self.guyFalling, self.angle)
-            screenS.blit(self.guyFallingR, [self.gX, self.gY])
+            self.easterEgg()
 
 
 class OptionsScreen(Screen):
@@ -112,19 +123,31 @@ class OptionsScreen(Screen):
         screenS.blit(self.text, [0,0])
 
 class Fish:
-    def __init__(self, region):
+    def __init__(self, region, fishLevels, waterY):
         self.imageNames = [imgName for imgName in os.listdir(f'img/{region}') if imgName.endswith(".png")]
+
         self.name = random.choice(self.imageNames)
         self.image = load_image(f'img/{region}/{self.name}')
+        self.scale = random.uniform(0.8, 1.2)
+        self.image = pygame.transform.scale_by(self.image, self.scale)
         self.name = self.name.removesuffix(".png")
-        print(self.name)
+        self.levelRange = fishLevels[self.name]
+        self.levelRange = [self.levelRange[0] * 200 + waterY, self.levelRange[1] * 200 + waterY]
+        
         self.rect = self.image.get_rect()
-        self.hitBox = pygame.Surface((10,10))
+        self.hitBox = pygame.Surface((10*self.scale,10*self.scale))
         self.hitBoxRect = self.hitBox.get_rect()
+        self.hitBox.fill([0,255,255])
 
-        self.x, self.y = random.randint(WIDTH//3, WIDTH + WIDTH//3), random.randint(HEIGHT//1.1, HEIGHT//1.1 + 500)
+        self.showFishLevels = True
+        self.showFishHitBox = True
+        self.showFishRect = True
+
+        self.x, self.y = random.randint(WIDTH//3, WIDTH + WIDTH//3), random.randint(self.levelRange[0], self.levelRange[1])
 
         self.rect.center = [self.x, self.y]
+
+        self.angle = 0
 
         self.direction = random.choice([-1,1])
 
@@ -133,7 +156,10 @@ class Fish:
         self.speed = random.uniform(0.5, 1.2)
 
         self.caught = False
+        self.drop = False
         self.baitPos = [0,0]
+
+        self.upDown = random.choice([-1,1])
         # self.directionY = -1
 
         if self.direction > 0:
@@ -143,41 +169,83 @@ class Fish:
 
     def update(self):
         if not self.caught:
-            self.x += self.speed * self.direction
-            self.y += self.speed/4 * self.directionY
             if self.x < self.turnPos and self.direction < 0:
                 self.direction *= -1
                 self.image = pygame.transform.flip(self.image, True, False)
                 self.turnPos = self.x + random.randint(50,300)*self.direction
                 self.directionY = random.choice([-1,1])
+                self.upDown = random.choice([-1,1])
             
             if self.x > self.turnPos and self.direction > 0:
                 self.direction *= -1
                 self.image = pygame.transform.flip(self.image, True, False)
                 self.turnPos = self.x + random.randint(50,300)*self.direction
                 self.directionY = random.choice([-1,1])
+                self.upDown = random.choice([-1,1])
             
-            if self.x < WIDTH//3-1:
-                self.direction *= -1
-                self.turnPos = self.x + random.randint(50,300) * self.direction
-                self.image = pygame.transform.flip(self.image, True, False)
-                self.directionY = random.choice([-1,1])
+            # if self.x < WIDTH//3-1:
+            #     self.direction *= -1
+            #     self.turnPos = self.x + random.randint(50,300) * self.direction
+            #     self.image = pygame.transform.flip(self.image, True, False)
+            #     self.directionY = 1
+            #     self.upDown = random.choice([-1,1])
+
+            if self.y < self.levelRange[0]:
+                self.directionY = 1
+                self.upDown = 1
+            
+            if self.y > self.levelRange[1]:
+                self.directionY = -1
+                self.upDown = -1
 
             if self.rect.top <= currentScreen.waterRect.top + 100:
                 self.directionY = 1
+                self.upDown = random.choice([-1,1])
                 # print("OUT OF WATER")
             self.rect.center = [self.x, self.y]
-            screenS.blit(self.image, self.rect)
+
+            # self.angle += self.directionY/20
+            self.x += self.speed * self.direction
+            self.y += self.speed/4 * self.directionY
+            # self.y += self.directionY * abs(math.radians(self.angle))
+            self.imageR = pygame.transform.rotate(self.image, self.angle)
+            self.rectR = self.imageR.get_rect()
+            self.rectR.center = [self.x, self.y]
+
+            screenS.blit(self.imageR, self.rectR)
+            if self.showFishLevels:
+                pygame.draw.aaline(screenS, [255,0,0], [0, self.levelRange[0]], [2000, self.levelRange[0]])
+                pygame.draw.aaline(screenS, [0,255,0], [0, self.levelRange[1]], [2000, self.levelRange[1]])
+            if self.showFishHitBox:
+                screenS.blit(self.hitBox, self.hitBoxRect)
+            if self.showFishRect:
+                pygame.draw.rect(screenS, [255,0,0], self.rect, 2)
         else:
-            self.x = self.baitPos[0]
-            self.y = self.baitPos[1]
-            if self.direction == 1:
-                self.imageR = pygame.transform.flip(self.image, True, False)
+            # self.caught = True
+            if not self.drop:
+                # print("BOA", random.randint(100,10000))
+                self.x = self.baitPos[0]
+                self.y = self.baitPos[1]
+                if self.direction == 1:
+                    self.imageR = pygame.transform.flip(self.image, True, False)
+                else:
+                    self.imageR = pygame.transform.flip(self.image, False, False)
+                self.imageR = pygame.transform.rotate(self.imageR, -90)
+                self.rect.center = [self.x + self.imageR.get_width(), self.y]
+                screenS.blit(self.imageR, self.rect)
             else:
-                self.imageR = pygame.transform.flip(self.image, False, False)
-            self.imageR = pygame.transform.rotate(self.imageR, -90)
-            self.rect.center = [self.x + self.imageR.get_width(), self.y]
-            screenS.blit(self.imageR, self.rect)
+                if self.y < currentScreen.waterRect.top:
+                    self.y += 3
+                    self.x += 2
+                    self.rect.center = [self.x, self.y]
+                    screenS.blit(self.image, self.rect)
+                else:
+                    self.drop = False
+                    self.caught = False
+                    currentScreen.boat.caughtFishIndex = -1
+                    currentScreen.isFishing = False
+                    screenS.blit(self.image, self.rect)
+                
 
         self.hitBoxRect.centerx = self.rect.centerx + self.rect.width//2*self.direction
         self.hitBoxRect.centery = self.rect.centery
@@ -190,6 +258,10 @@ class Boat:
         self.rect = self.image.get_rect()
         self.staticRect = self.image.get_rect()
 
+        self.prut = load_image("img/prut.png")
+        self.prutRect = self.prut.get_rect()
+        self.prutRect.bottomleft = (self.staticRect.right - 40, self.rect.top + 100)
+
         self.bait = pygame.Surface((20,20))
         self.bait.fill((0,255,0))
         self.baitRect = self.bait.get_rect()
@@ -200,6 +272,10 @@ class Boat:
 
         self.baitX = 0
         self.baitY = 0
+
+        # 200px = 1m
+        self.silonMax = 5
+        self.currentSilon = 0
 
         self.maxDiff = 4
         self.directionY = -1
@@ -214,7 +290,7 @@ class Boat:
 
         self.rect.center = (self.x, self.y)
         self.staticRect.center = (self.x, self.y)
-        self.baitRect.center = (self.rect.centerx + 100, self.rect.centery - 50)
+        self.baitRect.center = [self.prutRect.right, self.prutRect.top + 50]
 
         self.defaultBaitPos = [0,0]
         self.endingPoint = self.baitRect.center
@@ -225,12 +301,21 @@ class Boat:
 
         self.rollBack = False
 
+        self.a1 = 0
+        self.a2 = 90
+
 
     def update(self, isFishing, baitSpeed = 0):
         self.defaultY = currentScreen.waterRect.top
+
         self.x += -self.speed * currentScreen.directionX
         self.y = currentScreen.waterRect.top - 20
         self.defaultBaitPos[0] += -self.speed * currentScreen.directionX
+
+        self.currentSilon = math.dist(self.defaultBaitPos, self.endingPoint)/100
+
+        # print(self.currentSilon)
+
         if self.angle < -self.maxDiff:
             self.directionY = 1
         if self.angle > self.maxDiff:
@@ -246,40 +331,73 @@ class Boat:
         self.rect.top = self.y+self.yM-100
 
         self.staticRect.center = (self.x, self.y)
-        self.baitRect.center = (self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY)
+        # self.baitRect.center = (self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY)
+        self.baitRect.center = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
         if not isFishing:
             self.baitX = 0
             self.baitY = 0
-            self.defaultBaitPos = [self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY]
+            # self.defaultBaitPos = [self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY]
+            self.defaultBaitPos = list(self.prutRect.topright)
 
 
         if self.throwingBait:
-            if self.baitY < 100:
+            # if self.baitY < 100:
+            # print(self.prutRect.top - 5, currentScreen.waterRect.top)
+            if self.baitRect.top - 5 < currentScreen.waterRect.top:
                 self.baitY += 1
                 # print(self.baitY)
                 # if not self.baitRect.colliderect(currentScreen.waterRect):
-                self.baitX = self.baitX + math.cos(math.radians(self.baitY*1.2))*3
+                self.baitX = self.baitX + math.cos(math.radians(self.baitY*1.2))*5
+                # print("MOVING", self.baitY-5 < currentScreen.waterRect.top)
+                # print(self.baitX, self.baitY)
                 # self.baitX = math.sin(math.radians(self.baitY*4))
-                self.baitRect.center = (self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY)
+                # self.baitRect.center = (self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY)
+                self.baitRect.center = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
             else:
                 self.throwingBait = False
-        elif isFishing and not (self.rollBack or self.caughtFish):
+        elif isFishing and not self.rollBack and not self.caughtFish:
+            if equalPlusMinus(self.currentSilon, self.silonMax, 0.1):
+                if -currentScreen.directionX > 0:
+                    currentScreen.directionX = 0
+                else:
+                    self.baitX -= 0.1
+                if -currentScreen.directionY > 0:
+                    currentScreen.directionY = 0
+                else:
+                    self.baitY -= 0.1
             if self.baitX + self.rect.right > self.rect.right:
                 self.baitX += -currentScreen.directionX
-            self.baitY += -currentScreen.directionY + (0 if self.caughtFish else 0.5)
+                pass
+            self.baitY += (-currentScreen.directionY + (0 if self.caughtFish else 0.5)) if not equalPlusMinus(self.currentSilon, self.silonMax, 0.1) else 0
+
 
         self.endingPoint = self.baitRect.center
-        pygame.draw.aaline(screenS, [0,0,0], self.defaultBaitPos, self.endingPoint)
+        # nodes = numpy.asfortranarray([
+        #     [self.defaultBaitPos[0], (self.defaultBaitPos[0] + self.endingPoint[0])/2, self.endingPoint[0]],
+        #     [self.defaultBaitPos[1], (self.defaultBaitPos[1] + self.endingPoint[1])/2, self.endingPoint[1]]
+        # ])
+        # curve = bezier.Curve(nodes, degree=2)
+
+        rect = [self.defaultBaitPos[0] - (self.endingPoint[0]-self.defaultBaitPos[0]),self.defaultBaitPos[1], (self.endingPoint[0]-self.defaultBaitPos[0])*2, (self.endingPoint[1] - self.defaultBaitPos[1])*2]
+        # pygame.draw.rect(screenS, [255,0,0],  rect)
+        if self.endingPoint[0] - self.defaultBaitPos[0] > 3:
+            pygame.draw.arc(screenS, [0,0,0], rect, math.radians(self.a1), math.radians(self.a2), 1)
+        else:
+            pygame.draw.aaline(screenS, [0,0,0], self.defaultBaitPos, self.endingPoint)
+
+        self.prutRect.bottomleft = (self.staticRect.right - 40, self.rect.top + 100)
+
+        screenS.blit(self.prut, self.prutRect)
         screenS.blit(self.imageR, self.rect)
-        if self.baitY < 100 and currentScreen.isFishing and not self.throwingBait and not self.caughtFish and not self.rollBack:
+        if not self.baitRect.colliderect(currentScreen.waterRect) and currentScreen.isFishing and not self.throwingBait and not self.caughtFish and not self.rollBack:
             self.rollBack = True
-            self.fromPos = list(self.baitRect.center)
+            self.fromPos = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
             self.gotoPos = self.defaultBaitPos.copy()
         if not self.caughtFish:
             screenS.blit(self.bait, self.baitRect)
         if self.caughtFish or self.rollBack:
             if not equalPlusMinus(self.baitRect.center[1], self.gotoPos[1] , 4):
-                self.fromPos = list(self.baitRect.center)
+                self.fromPos = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
                 direction = (pygame.Vector2(self.gotoPos) - pygame.Vector2(self.fromPos)).normalize()
                 self.baitX += direction[0] * 5
                 self.baitY += direction[1] * 5
@@ -291,12 +409,20 @@ class Boat:
                 self.throwingBait = False
                 self.baitRect.center = self.defaultBaitPos.copy()
                 if self.caughtFish:
-                    self.caughtFish = False
-                    currentScreen.fishInventoryDict[currentScreen.fishes[self.caughtFishIndex].name] += 1
-                    currentScreen.totalFishAmount += 1
-                    print(currentScreen.fishInventoryDict, currentScreen.totalFishAmount)
-                    currentScreen.fishes.pop(self.caughtFishIndex)
-                    self.caughtFishIndex = -1
+                    if currentScreen.capacity < currentScreen.maxCapacity:
+                        self.caughtFish = False
+                        currentScreen.fishInventoryDict[currentScreen.fishes[self.caughtFishIndex].name] += 1
+                        currentScreen.totalFishAmount += 1
+                        print(currentScreen.fishInventoryDict, currentScreen.totalFishAmount)
+                        currentScreen.fishes.pop(self.caughtFishIndex)
+                        self.caughtFishIndex = -1
+                        currentScreen.capacity += 1
+                    else:
+                        self.caughtFish = False
+                        currentScreen.fishes[self.caughtFishIndex].drop = True
+                        self.caughtFishIndex = -1
+                        currentScreen.isFishing = False
+                        currentScreen.boat.caughtFish = False
                 elif self.rollBack:
                     self.rollBack = False
 
@@ -307,6 +433,8 @@ class GameScreen(Screen):
         self.screenPos = [0, 0]
 
         self.money = 100
+        self.maxCapacity = 10
+        self.capacity = 0
 
         self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
         self.background.fill((100,150,100))
@@ -321,6 +449,9 @@ class GameScreen(Screen):
         self.text = self.font.render("GAME", False, [255,255,255])
         self.region = "tatry"
 
+        levelsJson = open("fishLevels.json")
+        self.fishLevels = json.load(levelsJson)
+
         self.totalFishAmount = 0
         self.fishNames = [imgName for imgName in os.listdir(f'img/{self.region}') if imgName.endswith(".png")]
         self.fishInventoryDict = dict()
@@ -333,12 +464,12 @@ class GameScreen(Screen):
         self.fishes = []
 
         for i in range(self.fishAmount):
-            self.fishes.append(Fish(self.region))
+            self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top))
 
-        self.block = pygame.Surface([200, 200])
-        self.block.fill((0,0,0))
-        self.blockRect = self.block.get_rect()
-        self.blockRect.center = [10,200]
+        # self.block = pygame.Surface([200, 200])
+        # self.block.fill((0,0,0))
+        # self.blockRect = self.block.get_rect()
+        # self.blockRect.center = [10,200]
 
         self.directionX = 0
         self.directionY = 0
@@ -359,30 +490,48 @@ class GameScreen(Screen):
         self.fishInventory = FishInventory()
         self.fishInvetoryShow = False
 
+        self.moneyText = self.font.render(f'Money: {self.money}', False, [0,0,0])
+        self.moneyRect = self.moneyText.get_rect()
+        self.moneyRect.topleft = [10,10]
+
+        self.capacityText = self.font.render(f'Capacity: {self.capacity}/{self.maxCapacity}', False, [0,0,0])
+        self.capacityRect = self.capacityText.get_rect()
+
     def update(self):
         self.currentCameraPos = [self.defaultBoatX + self.screenPos[0], 0]
+
+        self.moneyText = self.font.render(f'Money: {self.money}', False, [0,0,0])
+        self.moneyRect = self.moneyText.get_rect()
+        self.moneyRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 10]
+
+        self.capacityText = self.font.render(f'Capacity: {self.capacity}/{self.maxCapacity}', False, [0,0,0])
+        self.capacityRect = self.capacityText.get_rect()
+        self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 30]
 
         self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
         self.background.fill((100,150,100))
 
-        if not self.boat.caughtFish:
-            self.fishCollideIndex = self.boat.baitRect.collidelist([fish.hitBoxRect for fish in self.fishes])
-        if self.fishCollideIndex != -1:
-            if self.boat.caughtFishIndex == -1:
-                self.boat.caughtFishIndex = self.fishCollideIndex
-                self.fishes[self.fishCollideIndex].caught = True
-                self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
-                self.boat.caughtFish = True
-                self.boat.gotoPos = self.boat.defaultBaitPos.copy()
-                self.boat.fromPos = list(self.boat.baitRect.center)
-                # print("CAUGHT!!!")
-            elif self.boat.caughtFishIndex == self.fishCollideIndex:                    
-                self.fishes[self.fishCollideIndex].caught = True
-                self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
-                self.boat.caughtFish = True
-                self.boat.gotoPos = self.boat.defaultBaitPos.copy()
-                self.boat.fromPos = list(self.boat.baitRect.center)
-                # print("CAUGHT!!!")
+        anyFishDropping = True if (True in [fish.drop for fish in self.fishes]) else False
+
+        if not anyFishDropping:
+            if not self.boat.caughtFish:
+                self.fishCollideIndex = self.boat.baitRect.collidelist([fish.hitBoxRect for fish in self.fishes])
+            if self.fishCollideIndex != -1:
+                if self.boat.caughtFishIndex == -1:
+                    self.boat.caughtFishIndex = self.fishCollideIndex
+                    self.fishes[self.fishCollideIndex].caught = True
+                    self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
+                    self.boat.caughtFish = True
+                    self.boat.gotoPos = self.boat.defaultBaitPos.copy()
+                    self.boat.fromPos = list(self.boat.baitRect.center)
+                    # print("CAUGHT!!!")
+                elif self.boat.caughtFishIndex == self.fishCollideIndex:                    
+                    self.fishes[self.fishCollideIndex].caught = True
+                    self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
+                    self.boat.caughtFish = True
+                    self.boat.gotoPos = self.boat.defaultBaitPos.copy()
+                    self.boat.fromPos = list(self.boat.baitRect.center)
+                    # print("CAUGHT!!!")
 
         if self.isFishing:
             self.screenPos[0] = -self.boat.baitRect.centerx + WIDTH//2
@@ -392,8 +541,8 @@ class GameScreen(Screen):
             for fish in self.fishes:
                 if fish.rect.right < 0:
                     self.fishes.remove(fish)
-                    self.fishes.append(Fish(self.region))
-                    self.fishes.append(Fish(self.region))
+                    self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top))
+                    self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top))
 
         # print(len(self.fishes))
 
@@ -445,6 +594,8 @@ class GameScreen(Screen):
         screenS.blit(self.background, [0,0])
         screenS.blit(self.water, self.waterRect)
         screenS.blit(self.text, [0,0])
+        screenS.blit(self.moneyText, self.moneyRect)
+        screenS.blit(self.capacityText, self.capacityRect)
 
         # print(self.screenPos, self.boat.x)
         
@@ -482,7 +633,7 @@ class GameScreen(Screen):
         self.screenPos[0] += self.directionX * self.cameraSpeed
         self.screenPos[1] += self.directionY * self.cameraSpeed
 
-        screenS.blit(self.block, self.blockRect)
+        # screenS.blit(self.block, self.blockRect)
 
         for fish in self.fishes:
             fish.update()
@@ -512,6 +663,8 @@ class GameScreen(Screen):
 
         if key == pygame.K_i:
             self.fishInvetoryShow = not self.fishInvetoryShow
+            if self.isFishing:
+                self.fishInvetoryShow = False
 
         if key == pygame.K_DOWN:
             if not self.fishInvetoryShow:
@@ -525,14 +678,15 @@ class GameScreen(Screen):
             else:
                 self.fishInventory.moveUp = True
 
-        if key == pygame.K_SPACE:
-            if not self.isFishing:
-                self.boat.throwingBait = True
-                self.isFishing = True
-            else:
-                self.boat.rollBack = True
-                self.boat.fromPos = list(self.boat.baitRect.center)
-                self.boat.gotoPos = self.boat.defaultBaitPos.copy()
+        if key == pygame.K_SPACE and self.boat.staticRect.centerx != WIDTH//2:
+            if not self.fishInvetoryShow:
+                if not self.isFishing:
+                    self.boat.throwingBait = True
+                    self.isFishing = True
+                elif not self.boat.throwingBait:
+                    self.boat.rollBack = True
+                    self.boat.fromPos = list(self.boat.baitRect.center)
+                    self.boat.gotoPos = self.boat.defaultBaitPos.copy()
             # self.screenPos[0] = -self.boat.baitRect.centerx + WIDTH//2
             # self.screenPos[1] = -self.boat.baitRect.centery + HEIGHT//2
 
@@ -582,14 +736,16 @@ class FishInventory:
         self.cRect = self.container.get_rect()
         self.cRect.topleft = (self.gapfromScreen//2, self.gapfromScreen//2)
 
-        self.font = pygame.font.Font(pygame.font.get_default_font(), 40)
-
-        self.money = self.font.render(f'Money: {0}', False, [0,255,0])
+        self.font = pygame.font.Font(size=40)
         
         self.moveDown = False
         self.moveUp = False
 
         self.itemHeight = 100
+
+        fishPricesJson = open("fishPrices.json")
+
+        self.fishPrices = json.load(fishPricesJson)
 
         self.items = []
 
@@ -600,15 +756,12 @@ class FishInventory:
             name = self.items[collide].rawName.removesuffix(".png")
             if currentScreen.fishInventoryDict[name] > 0:
                 currentScreen.fishInventoryDict[name] -= 1
-                currentScreen.money += 10
+                currentScreen.money += self.fishPrices[name]
+                currentScreen.capacity -= 1
 
 
     def update(self):
         # print(self.cy, random.randint(0,1000))
-
-        self.money = self.font.render(f'Money: {currentScreen.money}', False, [0,255,0])
-        self.moneyRect = self.money.get_rect()
-        self.moneyRect.topleft = [10,10]
         
         self.iRect.center = (-currentScreen.screenPos[0] + WIDTH//2, -currentScreen.screenPos[1] + HEIGHT//2)
 
@@ -631,7 +784,7 @@ class FishInventory:
             i.update(self.container)
 
         self.inventory.blit(self.container, self.cRect)
-        self.inventory.blit(self.money, self.moneyRect)
+        # self.inventory.blit(self.money, self.moneyRect)
         screenS.blit(self.inventory, self.iRect)
 
 class InventoryItem:
@@ -652,7 +805,7 @@ class InventoryItem:
         self.iconRect = self.icon.get_rect()
         self.iconRect.center = (height//2, height//2)
 
-        self.font = pygame.font.Font(pygame.font.get_default_font(), 40)
+        self.font = pygame.font.Font(size=40)
 
         self.nameText = self.font.render(self.name, False, [0,0,0])
         self.nameTextRect = self.nameText.get_rect()
@@ -675,6 +828,10 @@ class InventoryItem:
         self.background.blit(self.nameText, self.nameTextRect)
         self.background.blit(self.amountText, self.amountTextRect)
         surf.blit(self.background, self.backgroundRect)
+
+        # mousePos = pygame.mouse.get_pos()
+        # if mousePos[0] > self.iconRect.left and mousePos[0] < self.iconRect.left + self.iconRect.width and mousePos[1] > self.iconRect.top and mousePos[1] < self.iconRect.top + self.iconRect.height
+        #     print(self.name)
 
 
 class Button:
