@@ -258,7 +258,7 @@ class Boat:
         self.rect = self.image.get_rect()
         self.staticRect = self.image.get_rect()
 
-        self.prut = load_image("img/prut.png")
+        self.prut = load_image("img/prut.bmp")
         self.prutRect = self.prut.get_rect()
         self.prutRect.bottomleft = (self.staticRect.right - 40, self.rect.top + 100)
 
