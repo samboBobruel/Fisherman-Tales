@@ -641,7 +641,6 @@ class GameScreen(Screen):
         else:
             self.directionX = 0
 
-        print()
         if self.screenPos[0] <= 0:
             self.screenPos[0] += self.directionX * (self.boat.speed if (self.boat.staticRect.centerx - abs(self.screenPos[0])) <= 250 or abs(self.boat.staticRect.centerx - abs(self.screenPos[0] - WIDTH)) <= 250 else self.cameraSpeed)
         self.screenPos[1] += self.directionY * self.cameraSpeed
