@@ -411,6 +411,8 @@ class Boat:
                 if self.caughtFish:
                     if currentScreen.capacity < currentScreen.maxCapacity:
                         self.caughtFish = False
+                        print(currentScreen.fishInventoryDict)
+                        print(currentScreen.fishes[self.caughtFishIndex].name)
                         currentScreen.fishInventoryDict[currentScreen.fishes[self.caughtFishIndex].name] += 1
                         currentScreen.totalFishAmount += 1
                         print(currentScreen.fishInventoryDict, currentScreen.totalFishAmount)
@@ -460,11 +462,12 @@ class GameScreen(Screen):
         self.fishLevels = json.load(levelsJson)
 
         self.totalFishAmount = 0
-        self.fishNames = [imgName for imgName in os.listdir(f'img/{self.region}') if imgName.endswith(".png")]
+        self.fishNames = [imgName for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
         self.fishInventoryDict = dict()
         for name in self.fishNames:
             name = name.removesuffix(".png")
             self.fishInventoryDict[name] = 0
+        print(self.fishInventoryDict)
         print(self.fishInventoryDict)
         self.fishAmount = 15
 
@@ -638,7 +641,7 @@ class GameScreen(Screen):
         else:
             self.directionX = 0
 
-        print(self.screenPos[0])
+        #print(self.screenPos[0])
         if self.screenPos[0] <= 0:
             self.screenPos[0] += self.directionX * self.cameraSpeed
         self.screenPos[1] += self.directionY * self.cameraSpeed
