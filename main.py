@@ -445,10 +445,17 @@ class GameScreen(Screen):
         # self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
         # self.background.fill((100,150,100))
 
+        self.endOfMap = 0
+
         self.background = load_image(f'img/{self.region}/backgrounds/pozadie.png')
         self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(2)]
         for i in range(len(self.backgrounds)):
             self.backgrounds[i][1].topleft = [i*WIDTH, 0]
+            self.endOfMap += i*WIDTH
+
+        self.endOfMap *= 2
+
+        # self.boat.x = self.endOfMap - WIDTH//2
         
         self.water = pygame.Surface([WIDTH + self.screenPos[0], 162], pygame.SRCALPHA)
         self.water.fill((100,100,250))
@@ -459,6 +466,11 @@ class GameScreen(Screen):
         self.water2.fill((100,100,250,50))
         self.font = pygame.font.Font(None, 36)
         self.text = self.font.render("GAME", False, [255,255,255])
+
+        self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
+        self.harborRect = self.harbor.get_rect()
+        self.harborRect.centery = self.waterRect.top - 20
+        self.harborRect.left = 0
 
         levelsJson = open("fishLevels.json")
         self.fishLevels = json.load(levelsJson)
@@ -608,7 +620,8 @@ class GameScreen(Screen):
                 screenS.blit(background[0], background[1])
                 print("BLITTING BACKGROUND", i)
         screenS.blit(self.water, self.waterRect)
-        screenS.blit(self.text, [0,0])
+        screenS.blit(self.harbor, self.harborRect)
+        # screenS.blit(self.text, [0,0])
         screenS.blit(self.moneyText, self.moneyRect)
         screenS.blit(self.capacityText, self.capacityRect)
 
@@ -620,6 +633,11 @@ class GameScreen(Screen):
             self.leftPressed = False
             if self.isFishing and self.boat.baitX > 1:
                 self.boat.baitX -= 1
+
+        if self.boat.x >= self.endOfMap - WIDTH//2:
+            self.rightPressed = False
+            if self.isFishing and self.boat.baitX < self.endOfMap:
+                self.boat.baitX += 1
 
         if self.screenPos[1] + HEIGHT >= HEIGHT:
             self.downPressed = False
