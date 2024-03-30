@@ -124,10 +124,10 @@ class OptionsScreen(Screen):
 
 class Fish:
     def __init__(self, region, fishLevels, waterY):
-        self.imageNames = [imgName for imgName in os.listdir(f'img/{region}') if imgName.endswith(".png")]
+        self.imageNames = [imgName for imgName in os.listdir(f'img/{region}/fish') if imgName.endswith(".png")]
 
         self.name = random.choice(self.imageNames)
-        self.image = load_image(f'img/{region}/{self.name}')
+        self.image = load_image(f'img/{region}/fish/{self.name}')
         self.scale = random.uniform(0.8, 1.2)
         self.image = pygame.transform.scale_by(self.image, self.scale)
         self.name = self.name.removesuffix(".png")
@@ -436,9 +436,17 @@ class GameScreen(Screen):
         self.maxCapacity = 10
         self.capacity = 0
 
-        self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
-        self.background.fill((100,150,100))
-        self.water = pygame.Surface([WIDTH + self.screenPos[0], HEIGHT//4], pygame.SRCALPHA)
+        self.region = "tatry"
+
+        # self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
+        # self.background.fill((100,150,100))
+
+        self.background = load_image(f'img/{self.region}/backgrounds/pozadie.png')
+        self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(4)]
+        for i in range(len(self.backgrounds)):
+            self.backgrounds[i][1].topleft = [i*WIDTH, 0]
+        
+        self.water = pygame.Surface([WIDTH + self.screenPos[0], 162], pygame.SRCALPHA)
         self.water.fill((100,100,250))
         self.waterRect = self.water.get_rect()
         self.waterRect.bottomleft = [0, HEIGHT]
@@ -447,7 +455,6 @@ class GameScreen(Screen):
         self.water2.fill((100,100,250,50))
         self.font = pygame.font.Font(None, 36)
         self.text = self.font.render("GAME", False, [255,255,255])
-        self.region = "tatry"
 
         levelsJson = open("fishLevels.json")
         self.fishLevels = json.load(levelsJson)
@@ -508,8 +515,8 @@ class GameScreen(Screen):
         self.capacityRect = self.capacityText.get_rect()
         self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 30]
 
-        self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
-        self.background.fill((100,150,100))
+        # self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
+        # self.background.fill((100,150,100))
 
         anyFishDropping = True if (True in [fish.drop for fish in self.fishes]) else False
 
@@ -566,14 +573,14 @@ class GameScreen(Screen):
             elif equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 10) and self.directionX == 0:
                 self.screenPos[0] = -(self.boat.staticRect.centerx - WIDTH//2)
         else:
-            self.cameraSpeed = self.boat.speed
+            # self.cameraSpeed = self.boat.speed
             self.boat.baitRect.center = [-self.screenPos[0] + WIDTH//2, -self.screenPos[1] + HEIGHT//2]
             # print(self.boat.baitRect.center)
 
         try:
             # print([WIDTH - self.screenPos[0], HEIGHT//4 - self.screenPos[1]])
-            self.water = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT//4 - self.screenPos[1]])
-            self.water2 = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT//4 - self.screenPos[1]], pygame.SRCALPHA)
+            self.water = pygame.Surface([WIDTH - self.screenPos[0], 162 - self.screenPos[1]])
+            self.water2 = pygame.Surface([WIDTH - self.screenPos[0], 162 - self.screenPos[1]], pygame.SRCALPHA)
         except:
             pass
 
@@ -591,7 +598,8 @@ class GameScreen(Screen):
         self.water2.fill((100,100,250,50))
         # print(self.waterRect.w)
 
-        screenS.blit(self.background, [0,0])
+        for background in self.backgrounds:
+            screenS.blit(background[0], background[1])
         screenS.blit(self.water, self.waterRect)
         screenS.blit(self.text, [0,0])
         screenS.blit(self.moneyText, self.moneyRect)
@@ -630,7 +638,9 @@ class GameScreen(Screen):
         else:
             self.directionX = 0
 
-        self.screenPos[0] += self.directionX * self.cameraSpeed
+        print(self.screenPos[0])
+        if self.screenPos[0] <= 0:
+            self.screenPos[0] += self.directionX * self.cameraSpeed
         self.screenPos[1] += self.directionY * self.cameraSpeed
 
         # screenS.blit(self.block, self.blockRect)
