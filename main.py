@@ -29,7 +29,7 @@ icon = pygame.image.load("img/icon.png")
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT),0,256,0,0)
 screenS = pygame.Surface((WIDTH + screenX, HEIGHT))
-pygame.display.set_caption("Fisherman Tales")
+pygame.display.set_caption("Fisherman Tales", "Fisherman Tales")
 pygame.display.set_icon(icon)
 
 clock = pygame.time.Clock()
@@ -254,11 +254,11 @@ class Fish:
 class Boat:
     def __init__(self):
         global currentScreen
-        self.image = load_image("img/boat1.bmp")
+        self.image = load_image("img/boat1.png")
         self.rect = self.image.get_rect()
         self.staticRect = self.image.get_rect()
 
-        self.prut = load_image("img/prut.bmp")
+        self.prut = load_image("img/prut.png")
         self.prutRect = self.prut.get_rect()
         self.prutRect.bottomleft = (self.staticRect.right - 40, self.rect.top + 100)
 
