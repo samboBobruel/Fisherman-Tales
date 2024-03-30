@@ -139,9 +139,9 @@ class Fish:
         self.hitBoxRect = self.hitBox.get_rect()
         self.hitBox.fill([0,255,255])
 
-        self.showFishLevels = True
-        self.showFishHitBox = True
-        self.showFishRect = True
+        self.showFishLevels = False
+        self.showFishHitBox = False
+        self.showFishRect = False
 
         self.x, self.y = random.randint(WIDTH//3, WIDTH + WIDTH//3), random.randint(self.levelRange[0], self.levelRange[1])
 
@@ -641,9 +641,9 @@ class GameScreen(Screen):
         else:
             self.directionX = 0
 
-        #print(self.screenPos[0])
+        print()
         if self.screenPos[0] <= 0:
-            self.screenPos[0] += self.directionX * self.cameraSpeed
+            self.screenPos[0] += self.directionX * (self.boat.speed if (self.boat.staticRect.centerx - abs(self.screenPos[0])) <= 250 or abs(self.boat.staticRect.centerx - abs(self.screenPos[0] - WIDTH)) <= 250 else self.cameraSpeed)
         self.screenPos[1] += self.directionY * self.cameraSpeed
 
         # screenS.blit(self.block, self.blockRect)
@@ -788,7 +788,7 @@ class FishInventory:
 
         if len(self.items) == 0:
             for i, fishName in enumerate(currentScreen.fishNames):
-                fishImage = load_image(f'img/{currentScreen.region}/{fishName}')
+                fishImage = load_image(f'img/{currentScreen.region}/fish/{fishName}')
                 self.items.append(InventoryItem(self.cRect.w, self.itemHeight, i*self.itemHeight, fishImage, fishName))
         
         self.inventory.fill((100,100,100))
