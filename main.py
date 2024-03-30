@@ -4,7 +4,7 @@ pygame.init()
 
 def load_image(filename):
     rawImg = pygame.image.load(filename).convert_alpha()
-    brighten = 38
+    brighten = 0
     rawImg.fill((brighten, brighten, brighten), special_flags=pygame.BLEND_RGB_ADD) 
     img = pygame.transform.scale(rawImg, [rawImg.get_width() * resolutionScale, rawImg.get_height() * resolutionScale])
     return img
@@ -254,7 +254,7 @@ class Fish:
 class Boat:
     def __init__(self):
         global currentScreen
-        self.image = load_image("img/boat1.png")
+        self.image = load_image("img/boat1.bmp")
         self.rect = self.image.get_rect()
         self.staticRect = self.image.get_rect()
 
