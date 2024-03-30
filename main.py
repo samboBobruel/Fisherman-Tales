@@ -168,6 +168,7 @@ class Fish:
         self.turnPos = self.x + random.randint(50,300)*self.direction
 
     def update(self):
+        global currentScreen
         if not self.caught:
             if self.x < self.turnPos and self.direction < 0:
                 self.direction *= -1
@@ -212,7 +213,8 @@ class Fish:
             self.rectR = self.imageR.get_rect()
             self.rectR.center = [self.x, self.y]
 
-            screenS.blit(self.imageR, self.rectR)
+            if self.rect.right > abs(currentScreen.screenPos[0]) and self.rect.left < WIDTH + abs(currentScreen.screenPos[0]) and self.rect.bottom > abs(currentScreen.screenPos[1]) and self.rect.top < HEIGHT + abs(currentScreen.screenPos[1]):
+                screenS.blit(self.imageR, self.rectR)
             if self.showFishLevels:
                 pygame.draw.aaline(screenS, [255,0,0], [0, self.levelRange[0]], [2000, self.levelRange[0]])
                 pygame.draw.aaline(screenS, [0,255,0], [0, self.levelRange[1]], [2000, self.levelRange[1]])
@@ -444,7 +446,7 @@ class GameScreen(Screen):
         # self.background.fill((100,150,100))
 
         self.background = load_image(f'img/{self.region}/backgrounds/pozadie.png')
-        self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(4)]
+        self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(2)]
         for i in range(len(self.backgrounds)):
             self.backgrounds[i][1].topleft = [i*WIDTH, 0]
         
@@ -601,8 +603,10 @@ class GameScreen(Screen):
         self.water2.fill((100,100,250,50))
         # print(self.waterRect.w)
 
-        for background in self.backgrounds:
-            screenS.blit(background[0], background[1])
+        for i, background in enumerate(self.backgrounds):
+            if background[1].right > abs(currentScreen.screenPos[0]) and background[1].left < WIDTH + abs(currentScreen.screenPos[0]) and background[1].bottom > abs(currentScreen.screenPos[1]) and background[1].top < HEIGHT + abs(currentScreen.screenPos[1]):
+                screenS.blit(background[0], background[1])
+                print("BLITTING BACKGROUND", i)
         screenS.blit(self.water, self.waterRect)
         screenS.blit(self.text, [0,0])
         screenS.blit(self.moneyText, self.moneyRect)
