@@ -143,7 +143,7 @@ class Fish:
         self.showFishHitBox = False
         self.showFishRect = False
 
-        self.x, self.y = random.randint(WIDTH//3, WIDTH + WIDTH//3), random.randint(self.levelRange[0], self.levelRange[1])
+        self.x, self.y = random.randint(WIDTH//2, WIDTH*3), random.randint(self.levelRange[0], self.levelRange[1])
 
         self.rect.center = [self.x, self.y]
 
@@ -483,7 +483,7 @@ class GameScreen(Screen):
             self.fishInventoryDict[name] = 0
         print(self.fishInventoryDict)
         print(self.fishInventoryDict)
-        self.fishAmount = 15
+        self.fishAmount = 40
 
         self.fishes = []
 
