@@ -123,7 +123,7 @@ class OptionsScreen(Screen):
         screenS.blit(self.text, [0,0])
 
 class Fish:
-    def __init__(self, region, fishLevels, waterY):
+    def __init__(self, region, fishLevels, waterY, endOfMap):
         self.imageNames = [imgName for imgName in os.listdir(f'img/{region}/fish') if imgName.endswith(".png")]
 
         self.name = random.choice(self.imageNames)
@@ -143,7 +143,7 @@ class Fish:
         self.showFishHitBox = False
         self.showFishRect = False
 
-        self.x, self.y = random.randint(WIDTH//3, WIDTH + WIDTH//3), random.randint(self.levelRange[0], self.levelRange[1])
+        self.x, self.y = random.randint(WIDTH//2, endOfMap), random.randint(self.levelRange[0], self.levelRange[1])
 
         self.rect.center = [self.x, self.y]
 
@@ -367,7 +367,7 @@ class Boat:
                     currentScreen.directionY = 0
                 else:
                     self.baitY -= 0.1
-            if self.baitX + self.rect.right > self.rect.right:
+            if self.baitX + self.rect.right >= self.rect.right:
                 self.baitX += -currentScreen.directionX
                 pass
             self.baitY += (-currentScreen.directionY + (0 if self.caughtFish else 0.5)) if not equalPlusMinus(self.currentSilon, self.silonMax, 0.1) else 0
@@ -435,6 +435,7 @@ class GameScreen(Screen):
         self.boat = Boat()
 
         self.screenPos = [0, 0]
+        self.cameraOutOfBounds = False
 
         self.money = 100
         self.maxCapacity = 10
@@ -483,12 +484,12 @@ class GameScreen(Screen):
             self.fishInventoryDict[name] = 0
         print(self.fishInventoryDict)
         print(self.fishInventoryDict)
-        self.fishAmount = 15
+        self.fishAmount = 40
 
         self.fishes = []
 
         for i in range(self.fishAmount):
-            self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top))
+            self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
 
         # self.block = pygame.Surface([200, 200])
         # self.block.fill((0,0,0))
@@ -558,15 +559,18 @@ class GameScreen(Screen):
                     # print("CAUGHT!!!")
 
         if self.isFishing:
-            self.screenPos[0] = -self.boat.baitRect.centerx + WIDTH//2
+            if not self.cameraOutOfBounds:
+                self.screenPos[0] = -self.boat.baitRect.centerx + WIDTH//2
+            else:
+                self.screenPos[0] = -(self.endOfMap - WIDTH)
             self.screenPos[1] = -self.boat.baitRect.centery + HEIGHT//2
 
         if not self.boat.caughtFish:
             for fish in self.fishes:
                 if fish.rect.right < 0:
                     self.fishes.remove(fish)
-                    self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top))
-                    self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top))
+                    self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
+                    self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
 
         # print(len(self.fishes))
 
@@ -589,10 +593,7 @@ class GameScreen(Screen):
                 # self.screenPos[0] += 1
             elif equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 10) and self.directionX == 0:
                 self.screenPos[0] = -(self.boat.staticRect.centerx - WIDTH//2)
-        else:
-            # self.cameraSpeed = self.boat.speed
-            self.boat.baitRect.center = [-self.screenPos[0] + WIDTH//2, -self.screenPos[1] + HEIGHT//2]
-            # print(self.boat.baitRect.center)
+
 
         try:
             # print([WIDTH - self.screenPos[0], HEIGHT//4 - self.screenPos[1]])
@@ -618,7 +619,7 @@ class GameScreen(Screen):
         for i, background in enumerate(self.backgrounds):
             if background[1].right > abs(currentScreen.screenPos[0]) and background[1].left < WIDTH + abs(currentScreen.screenPos[0]) and background[1].bottom > abs(currentScreen.screenPos[1]) and background[1].top < HEIGHT + abs(currentScreen.screenPos[1]):
                 screenS.blit(background[0], background[1])
-                print("BLITTING BACKGROUND", i)
+                # print("BLITTING BACKGROUND", i)
         screenS.blit(self.water, self.waterRect)
         screenS.blit(self.harbor, self.harborRect)
         # screenS.blit(self.text, [0,0])
@@ -636,8 +637,12 @@ class GameScreen(Screen):
 
         if self.boat.x >= self.endOfMap - WIDTH//2:
             self.rightPressed = False
-            if self.isFishing and self.boat.baitX < self.endOfMap:
-                self.boat.baitX += 1
+            
+        if self.isFishing:
+            if self.boat.baitRect.centerx + WIDTH//2 > self.endOfMap:
+                self.cameraOutOfBounds = True
+            elif self.boat.baitRect.centerx + WIDTH//2 < self.endOfMap:
+                self.cameraOutOfBounds = False
 
         if self.screenPos[1] + HEIGHT >= HEIGHT:
             self.downPressed = False
@@ -663,8 +668,10 @@ class GameScreen(Screen):
         else:
             self.directionX = 0
 
-        if self.screenPos[0] <= 0:
+        if self.screenPos[0] <= 0 and self.screenPos[0] - WIDTH >= -self.endOfMap:
             self.screenPos[0] += self.directionX * (self.boat.speed if (self.boat.staticRect.centerx - abs(self.screenPos[0])) <= 250 or abs(self.boat.staticRect.centerx - abs(self.screenPos[0] - WIDTH)) <= 250 else self.cameraSpeed)
+
+
         self.screenPos[1] += self.directionY * self.cameraSpeed
 
         # screenS.blit(self.block, self.blockRect)
@@ -901,10 +908,10 @@ class StartButton(Button):
         if mousePos[0] > self.rect.x and mousePos[0] < self.rect.x + self.rect.width and mousePos[1] > self.rect.y and mousePos[1] < self.rect.y + self.rect.height:
             self.clicked = not self.clicked
             if not self.clicked:
-                currentScreen = gameScreen
+                currentScreen = GameScreen()
         elif self.clicked:
             self.clicked = False
-            currentScreen = gameScreen
+            currentScreen = GameScreen()
 
 class OptionsButton(Button):
     def click(self):
@@ -919,7 +926,7 @@ class OptionsButton(Button):
             currentScreen = optionsScreen
  
 menuScreen = MenuScreen()
-gameScreen = GameScreen()
+# gameScreen = GameScreen()
 optionsScreen = OptionsScreen()
 
 currentScreen = menuScreen
