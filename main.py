@@ -268,8 +268,7 @@ class Boat:
         self.bait.fill((0,255,0))
         self.baitRect = self.bait.get_rect()
 
-        # self.x = WIDTH//2
-        self.x = WIDTH*2 - WIDTH*0.5
+        self.x = WIDTH//2
         self.y = 0
         self.yM = 0
 
@@ -368,7 +367,7 @@ class Boat:
                     currentScreen.directionY = 0
                 else:
                     self.baitY -= 0.1
-            if self.baitX + self.rect.right > self.rect.right:
+            if self.baitX + self.rect.right >= self.rect.right:
                 self.baitX += -currentScreen.directionX
                 pass
             self.baitY += (-currentScreen.directionY + (0 if self.caughtFish else 0.5)) if not equalPlusMinus(self.currentSilon, self.silonMax, 0.1) else 0
