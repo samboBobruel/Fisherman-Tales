@@ -618,7 +618,7 @@ class GameScreen(Screen):
         for i, background in enumerate(self.backgrounds):
             if background[1].right > abs(currentScreen.screenPos[0]) and background[1].left < WIDTH + abs(currentScreen.screenPos[0]) and background[1].bottom > abs(currentScreen.screenPos[1]) and background[1].top < HEIGHT + abs(currentScreen.screenPos[1]):
                 screenS.blit(background[0], background[1])
-                print("BLITTING BACKGROUND", i)
+                # print("BLITTING BACKGROUND", i)
         screenS.blit(self.water, self.waterRect)
         screenS.blit(self.harbor, self.harborRect)
         # screenS.blit(self.text, [0,0])
@@ -663,8 +663,10 @@ class GameScreen(Screen):
         else:
             self.directionX = 0
 
-        if self.screenPos[0] <= 0:
+        if self.screenPos[0] <= 0 and self.screenPos[0] - WIDTH >= -self.endOfMap:
             self.screenPos[0] += self.directionX * (self.boat.speed if (self.boat.staticRect.centerx - abs(self.screenPos[0])) <= 250 or abs(self.boat.staticRect.centerx - abs(self.screenPos[0] - WIDTH)) <= 250 else self.cameraSpeed)
+
+
         self.screenPos[1] += self.directionY * self.cameraSpeed
 
         # screenS.blit(self.block, self.blockRect)
