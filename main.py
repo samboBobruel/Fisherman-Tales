@@ -484,7 +484,9 @@ class GameScreen(Screen):
             self.fishInventoryDict[name] = 0
         print(self.fishInventoryDict)
         print(self.fishInventoryDict)
-        self.fishAmount = 40
+        # self.fishAmount = 25
+        self.fishAmount = self.endOfMap//100 + 5
+        # print(self.fishAmount)
 
         self.fishes = []
 
