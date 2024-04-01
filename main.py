@@ -498,8 +498,8 @@ class GameScreen(Screen):
         self.fishRarity = json.load(fishRarityJson)
 
         self.totalFishAmount = 0
-        self.fishNames = [imgName.removesuffix(".png") for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
-        self.fishNames = genFishNamesForRarity(self.fishNames, self.fishRarity)
+        self.originalFishNames = [imgName.removesuffix(".png") for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
+        self.fishNames = genFishNamesForRarity(self.originalFishNames, self.fishRarity)
         print(self.fishNames)
         self.fishInventoryDict = dict()
         for name in self.fishNames:
@@ -856,8 +856,8 @@ class FishInventory:
         # print(self.cRect)
 
         if len(self.items) == 0:
-            for i, fishName in enumerate(currentScreen.fishNames):
-                fishImage = load_image(f'img/{currentScreen.region}/fish/{fishName}')
+            for i, fishName in enumerate(currentScreen.originalFishNames):
+                fishImage = load_image(f'img/{currentScreen.region}/fish/{fishName}.png')
                 self.items.append(InventoryItem(self.cRect.w, self.itemHeight, i*self.itemHeight, fishImage, fishName))
         
         self.inventory.fill((100,100,100))
