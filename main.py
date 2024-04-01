@@ -20,6 +20,14 @@ def angle(A, B, aspectRatio):
     angle = math.atan2(-y, x / aspectRatio)
     return angle
 
+def genFishNamesForRarity(fishNames, rarities):
+    final = []
+    for fishName in fishNames:
+        rarity = rarities[fishName]
+        for i in range(rarity):
+            final.append(fishName)
+    return final
+
 resolutionScale = 2
 screenX = 0
 screenY = 0
@@ -306,6 +314,7 @@ class Boat:
         self.a1 = 0
         self.a2 = 90
 
+        self.dockedIn = True
 
     def update(self, isFishing, baitSpeed = 0):
         self.defaultY = currentScreen.waterRect.top
@@ -473,14 +482,26 @@ class GameScreen(Screen):
         self.harborRect.centery = self.waterRect.top - 20
         self.harborRect.left = 0
 
+        self.harborFont = pygame.font.Font(None, 70)
+
+        self.harborTextOpacity = 255
+        self.harborText = self.harborFont.render("Harbor", False, (0,0,0)).convert_alpha()
+        self.harborText.set_alpha(self.harborTextOpacity)
+        self.harborTextRect = self.harborText.get_rect()
+        self.harborTextRect.center = [WIDTH//2, 150]
+
         levelsJson = open("fishLevels.json")
         self.fishLevels = json.load(levelsJson)
+        
+        fishRarityJson = open("fishRarity.json")
+        self.fishRarity = json.load(fishRarityJson)
 
         self.totalFishAmount = 0
-        self.fishNames = [imgName for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
+        self.fishNames = [imgName.removesuffix(".png") for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
+        self.fishNames = genFishNamesForRarity(self.fishNames, self.fishRarity)
+        print(self.fishNames)
         self.fishInventoryDict = dict()
         for name in self.fishNames:
-            name = name.removesuffix(".png")
             self.fishInventoryDict[name] = 0
         print(self.fishInventoryDict)
         print(self.fishInventoryDict)
@@ -567,6 +588,19 @@ class GameScreen(Screen):
                 self.screenPos[0] = -(self.endOfMap - WIDTH)
             self.screenPos[1] = -self.boat.baitRect.centery + HEIGHT//2
 
+        if self.boat.staticRect.centerx != WIDTH//2:
+            # print("NOT DOCKED ANYMORE")
+            self.boat.dockedIn = False
+            if self.harborTextOpacity > 0:
+                self.harborTextOpacity -= 5
+        else:
+            # print("DOCKED IN")
+            self.boat.dockedIn = True
+            if self.harborTextOpacity < 255:
+                self.harborTextOpacity += 5
+            else:
+                self.harborTextOpacity = 255
+
         if not self.boat.caughtFish:
             for fish in self.fishes:
                 if fish.rect.right < 0:
@@ -627,6 +661,10 @@ class GameScreen(Screen):
         # screenS.blit(self.text, [0,0])
         screenS.blit(self.moneyText, self.moneyRect)
         screenS.blit(self.capacityText, self.capacityRect)
+
+        self.harborText.set_alpha(self.harborTextOpacity)
+        if self.harborTextOpacity > 0:
+            screenS.blit(self.harborText, self.harborTextRect)
 
         # print(self.screenPos, self.boat.x)
         
