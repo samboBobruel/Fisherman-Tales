@@ -480,6 +480,7 @@ class GameScreen(Screen):
         self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
         self.harborRect = self.harbor.get_rect()
         self.harborRect.centery = self.waterRect.top - 20
+        print(self.harborRect.top)
         self.harborRect.left = 0
 
         self.harborFont = pygame.font.Font(None, 70)
