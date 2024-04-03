@@ -276,7 +276,8 @@ class Boat:
         self.bait.fill((0,255,0))
         self.baitRect = self.bait.get_rect()
 
-        self.x = WIDTH//2
+        # self.x = WIDTH//2
+        self.x = 1400
         self.y = 0
         self.yM = 0
 
@@ -376,9 +377,13 @@ class Boat:
                     currentScreen.directionY = 0
                 else:
                     self.baitY -= 0.1
-            if self.baitX + self.rect.right >= self.rect.right:
+            if self.baitX + self.staticRect.right > self.staticRect.right:
                 self.baitX += -currentScreen.directionX
                 pass
+            else:
+                if currentScreen.rightPressed:
+                    self.baitX += -currentScreen.directionX
+                    
             self.baitY += (-currentScreen.directionY + (0 if self.caughtFish else 0.5)) if not equalPlusMinus(self.currentSilon, self.silonMax, 0.1) else 0
 
 
@@ -730,10 +735,7 @@ class GameScreen(Screen):
         else:
             self.directionX = 0
 
-        print(self.screenPos[0])
-
         if self.screenPos[0] <= 0 and self.screenPos[0] - WIDTH >= -self.endOfMap:
-            print(self.directionX, random.random())
             self.screenPos[0] += self.directionX * (self.boat.speed if (self.boat.staticRect.centerx - abs(self.screenPos[0])) <= 250 or abs(self.boat.staticRect.centerx - abs(self.screenPos[0] - WIDTH)) <= 250 else self.cameraSpeed)
         
         if self.screenPos[0] > 0:
