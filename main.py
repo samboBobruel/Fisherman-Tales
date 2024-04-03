@@ -325,6 +325,11 @@ class Boat:
 
         self.currentSilon = math.dist(self.defaultBaitPos, self.endingPoint)/100
 
+        if self.currentSilon > self.silonMax-0.2:
+            currentScreen.outOfSilon = True
+        else:
+            currentScreen.outOfSilon = False
+
         # print(self.currentSilon)
 
         if self.angle < -self.maxDiff:
@@ -532,6 +537,13 @@ class GameScreen(Screen):
         # self.blockRect = self.block.get_rect()
         # self.blockRect.center = [10,200]
 
+        self.silonText = self.harborFont.render("Out of silon", False, [255,255,255])
+        self.silonTextRect = self.silonText.get_rect()
+        self.silonTextRect.center = [WIDTH//2 + self.screenPos[0], HEIGHT//2 + self.screenPos[1]]
+        self.silonTextOpacity = 255
+        self.fade = 0
+        self.outOfSilon = False
+
         self.directionX = 0
         self.directionY = 0
         self.cameraSpeed = 2
@@ -616,7 +628,7 @@ class GameScreen(Screen):
 
         if not self.boat.caughtFish:
             for fish in self.fishes:
-                if fish.rect.right < 0:
+                if fish.rect.right < 0 or fish.rect.left > self.endOfMap:
                     self.fishes.remove(fish)
                     self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
                     self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
@@ -674,6 +686,18 @@ class GameScreen(Screen):
         self.water2.fill((100,100,250,50))
         # print(self.waterRect.w)
 
+        if self.silonTextOpacity > 200:
+            self.fade = -10
+        elif self.silonTextOpacity < 50:
+            self.fade = 10
+        
+        print(self.silonTextOpacity)
+
+        self.silonTextOpacity += self.fade
+
+        self.silonTextRect.center = [WIDTH//2 - self.screenPos[0], HEIGHT//2 - self.screenPos[1] - 100]
+        self.silonText.set_alpha(self.silonTextOpacity)
+
         self.gameScreenS = pygame.Surface((WIDTH - self.screenPos[0] + 2, HEIGHT - self.screenPos[1]))
 
         for i, background in enumerate(self.backgrounds):
@@ -686,7 +710,6 @@ class GameScreen(Screen):
         # self.gameScreenS.blit(self.text, [0,0])
         self.gameScreenS.blit(self.moneyText, self.moneyRect)
         self.gameScreenS.blit(self.capacityText, self.capacityRect)
-        
 
         self.harborText.set_alpha(self.harborTextOpacity)
         if self.harborTextOpacity > 0:
@@ -747,6 +770,9 @@ class GameScreen(Screen):
 
         for fish in self.fishes:
             fish.update()
+            
+        if self.isFishing and self.outOfSilon:
+            self.gameScreenS.blit(self.silonText, self.silonTextRect)
 
         if self.isFishing:
             self.boat.update(self.isFishing, self.screenPos)
@@ -897,7 +923,7 @@ class FishInventory:
 
         self.inventory.blit(self.container, self.cRect)
         # self.inventory.blit(self.money, self.moneyRect)
-        screenS.blit(self.inventory, self.iRect)
+        currentScreen.gameScreenS.blit(self.inventory, self.iRect)
 
 class InventoryItem:
     def __init__(self, width, height, y, image, name):
