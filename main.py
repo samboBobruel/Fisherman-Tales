@@ -126,6 +126,8 @@ class OptionsScreen(Screen):
         self.font = pygame.font.Font(None, 36)
         self.text = self.font.render("OPTIONS", False, [255,255,255])
 
+        self.screenPos = [0,0]
+
     def update(self):
         screenS.blit(self.background, [0,0])
         screenS.blit(self.text, [0,0])
@@ -303,6 +305,10 @@ class Boat:
         self.staticRect.center = (self.x, self.y)
         self.baitRect.center = [self.prutRect.right, self.prutRect.top + 50]
 
+        self.depthText = pygame.Surface((20,20))
+        self.depthTextRect = self.depthText.get_rect()
+        self.depthTextRect.center = [self.baitX, self.baitY + 50]
+
         self.defaultBaitPos = [0,0]
         self.endingPoint = self.baitRect.center
 
@@ -330,6 +336,10 @@ class Boat:
             currentScreen.outOfSilon = True
         else:
             currentScreen.outOfSilon = False
+
+        self.depthText = currentScreen.font.render(f'{int(((self.defaultBaitPos[1] + self.baitY)/100-2.7)*100)/100}m', False, (255,255,255))
+        self.depthTextRect = self.depthText.get_rect()
+        self.depthTextRect.center = [self.baitRect.centerx, self.baitRect.centery + 50]
 
         # print(self.currentSilon)
 
@@ -390,7 +400,7 @@ class Boat:
                     self.baitX += -currentScreen.directionX
 
             # self.baitY += (-currentScreen.directionY + (0 if self.caughtFish else 0.75)) if not equalPlusMinus(self.currentSilon, self.silonMax, 0.1) else 0
-            self.baitY += -1.5 if currentScreen.directionY > 0 else 1
+            self.baitY += (-1.5 if currentScreen.directionY > 0 else 1) if not equalPlusMinus(self.currentSilon, self.silonMax, 0.1) else 0
 
 
         self.endingPoint = self.baitRect.center
@@ -411,6 +421,8 @@ class Boat:
 
         currentScreen.gameScreenS.blit(self.prut, self.prutRect)
         currentScreen.gameScreenS.blit(self.imageR, self.rect)
+        if isFishing and not self.caughtFish:
+            currentScreen.gameScreenS.blit(self.depthText, self.depthTextRect)
         if not self.baitRect.colliderect(currentScreen.waterRect) and currentScreen.isFishing and not self.throwingBait and not self.caughtFish and not self.rollBack:
             self.rollBack = True
             self.fromPos = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
@@ -632,7 +644,7 @@ class GameScreen(Screen):
             for fish in self.fishes:
                 if fish.rect.right < 0 or fish.rect.left > self.endOfMap:
                     self.fishes.remove(fish)
-                    self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
+                    # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
                     self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
 
         # if self.leftPressed and self.boat.dockedIn:
