@@ -222,14 +222,14 @@ class Fish:
             self.rectR.center = [self.x, self.y]
 
             if self.rect.right > abs(currentScreen.screenPos[0]) and self.rect.left < WIDTH + abs(currentScreen.screenPos[0]) and self.rect.bottom > abs(currentScreen.screenPos[1]) and self.rect.top < HEIGHT + abs(currentScreen.screenPos[1]):
-                screenS.blit(self.imageR, self.rectR)
+                currentScreen.gameScreenS.blit(self.imageR, self.rectR)
             if self.showFishLevels:
-                pygame.draw.aaline(screenS, [255,0,0], [0, self.levelRange[0]], [2000, self.levelRange[0]])
-                pygame.draw.aaline(screenS, [0,255,0], [0, self.levelRange[1]], [2000, self.levelRange[1]])
+                pygame.draw.aaline(currentScreen.gameScreenS, [255,0,0], [0, self.levelRange[0]], [2000, self.levelRange[0]])
+                pygame.draw.aaline(currentScreen.gameScreenS, [0,255,0], [0, self.levelRange[1]], [2000, self.levelRange[1]])
             if self.showFishHitBox:
-                screenS.blit(self.hitBox, self.hitBoxRect)
+                currentScreen.gameScreenS.blit(self.hitBox, self.hitBoxRect)
             if self.showFishRect:
-                pygame.draw.rect(screenS, [255,0,0], self.rect, 2)
+                pygame.draw.rect(currentScreen.gameScreenS, [255,0,0], self.rect, 2)
         else:
             # self.caught = True
             if not self.drop:
@@ -242,19 +242,19 @@ class Fish:
                     self.imageR = pygame.transform.flip(self.image, False, False)
                 self.imageR = pygame.transform.rotate(self.imageR, -90)
                 self.rect.center = [self.x + self.imageR.get_width(), self.y]
-                screenS.blit(self.imageR, self.rect)
+                currentScreen.gameScreenS.blit(self.imageR, self.rect)
             else:
                 if self.y < currentScreen.waterRect.top:
                     self.y += 3
                     self.x += 2
                     self.rect.center = [self.x, self.y]
-                    screenS.blit(self.image, self.rect)
+                    currentScreen.gameScreenS.blit(self.image, self.rect)
                 else:
                     self.drop = False
                     self.caught = False
                     currentScreen.boat.caughtFishIndex = -1
                     currentScreen.isFishing = False
-                    screenS.blit(self.image, self.rect)
+                    currentScreen.gameScreenS.blit(self.image, self.rect)
                 
 
         self.hitBoxRect.centerx = self.rect.centerx + self.rect.width//2*self.direction
@@ -392,20 +392,20 @@ class Boat:
         rect = [self.defaultBaitPos[0] - (self.endingPoint[0]-self.defaultBaitPos[0]),self.defaultBaitPos[1], (self.endingPoint[0]-self.defaultBaitPos[0])*2, (self.endingPoint[1] - self.defaultBaitPos[1])*2]
         # pygame.draw.rect(screenS, [255,0,0],  rect)
         if self.endingPoint[0] - self.defaultBaitPos[0] > 3:
-            pygame.draw.arc(screenS, [0,0,0], rect, math.radians(self.a1), math.radians(self.a2), 1)
+            pygame.draw.arc(currentScreen.gameScreenS, [0,0,0], rect, math.radians(self.a1), math.radians(self.a2), 1)
         else:
-            pygame.draw.aaline(screenS, [0,0,0], self.defaultBaitPos, self.endingPoint)
+            pygame.draw.aaline(currentScreen.gameScreenS, [0,0,0], self.defaultBaitPos, self.endingPoint)
 
         self.prutRect.bottomleft = (self.staticRect.right - 40, self.rect.top + 100)
 
-        screenS.blit(self.prut, self.prutRect)
-        screenS.blit(self.imageR, self.rect)
+        currentScreen.gameScreenS.blit(self.prut, self.prutRect)
+        currentScreen.gameScreenS.blit(self.imageR, self.rect)
         if not self.baitRect.colliderect(currentScreen.waterRect) and currentScreen.isFishing and not self.throwingBait and not self.caughtFish and not self.rollBack:
             self.rollBack = True
             self.fromPos = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
             self.gotoPos = self.defaultBaitPos.copy()
         if not self.caughtFish:
-            screenS.blit(self.bait, self.baitRect)
+            currentScreen.gameScreenS.blit(self.bait, self.baitRect)
         if self.caughtFish or self.rollBack:
             if not equalPlusMinus(self.baitRect.center[1], self.gotoPos[1] , 4):
                 self.fromPos = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
@@ -443,6 +443,9 @@ class GameScreen(Screen):
     def __init__(self):
         self.boat = Boat()
 
+        self.gameScreenS = pygame.Surface((WIDTH, HEIGHT))
+        self.gsPos = [0,0]
+
         self.screenPos = [0, 0]
         self.cameraOutOfBounds = False
 
@@ -457,6 +460,11 @@ class GameScreen(Screen):
 
         self.endOfMap = 0
 
+        self.shops = load_image(f'img/{self.region}/backgrounds/obchody.png')
+        self.shopsRect = self.shops.get_rect()
+        self.shopsRect.topright = [0,0]
+        self.showShops = False
+
         self.background = load_image(f'img/{self.region}/backgrounds/pozadie.png')
         self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(2)]
         for i in range(len(self.backgrounds)):
@@ -468,12 +476,12 @@ class GameScreen(Screen):
         # self.boat.x = self.endOfMap - WIDTH//2
         
         self.water = pygame.Surface([WIDTH + self.screenPos[0], 162], pygame.SRCALPHA)
-        self.water.fill((100,100,250))
+        self.water.fill((46,166,204))
         self.waterRect = self.water.get_rect()
         self.waterRect.bottomleft = [0, HEIGHT]
         self.water2 = self.water.copy()
         self.water2Rect = self.waterRect.copy()
-        self.water2.fill((100,100,250,50))
+        self.water2.fill((46,166,204,50))
         self.font = pygame.font.Font(None, 36)
         self.text = self.font.render("GAME", False, [255,255,255])
 
@@ -609,27 +617,35 @@ class GameScreen(Screen):
                     self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
                     self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
 
-        # print(len(self.fishes))
+        # if self.leftPressed and self.boat.dockedIn:
+        #     self.showShops = True
 
-        # print(equalPlusMinus(111, 100, 10))
+        if self.showShops:
+            self.gsPos[0] += 3
+            self.shopsRect.right += 3
+            if self.gsPos[0] >= WIDTH:
+                self.showShops = False
 
-        # if -self.screenPos[0] + WIDTH//2 != self.boat.staticRect.centerx and self.directionX == 0:
         if not self.isFishing:
-            if not equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 3) and self.directionX == 0:
+            if (not equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 3) and self.directionX == 0):
                 # print("SC")
                 if -self.screenPos[0] + WIDTH//2 > self.boat.staticRect.centerx:
                     self.screenPos[0] += 3
                 else:
                     self.screenPos[0] -= 3
-            if not equalPlusMinus(-self.screenPos[1] + HEIGHT//2, self.boat.staticRect.centery, 3) and self.directionY == 0:
-                if - self.screenPos[1] + HEIGHT//2 > self.boat.staticRect.centery:
+            if not self.boat.dockedIn:
+                if not equalPlusMinus(-self.screenPos[1] + HEIGHT//2, self.boat.staticRect.centery, 3) and self.directionY == 0:
+                    if -self.screenPos[1] + HEIGHT//2 > self.boat.staticRect.centery:
+                        self.screenPos[1] += 3
+                    else:
+                        self.screenPos[1] -= 3
+                    # print(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx)
+                    # self.screenPos[0] += 1
+                elif equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 10) and self.directionX == 0:
+                    self.screenPos[0] = -(self.boat.staticRect.centerx - WIDTH//2)
+            else:
+                if self.screenPos[1] < 0:
                     self.screenPos[1] += 3
-                else:
-                    self.screenPos[1] -= 3
-                # print(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx)
-                # self.screenPos[0] += 1
-            elif equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 10) and self.directionX == 0:
-                self.screenPos[0] = -(self.boat.staticRect.centerx - WIDTH//2)
 
 
         try:
@@ -639,12 +655,13 @@ class GameScreen(Screen):
         except:
             pass
 
-        if screenY < -500:
-            self.water.fill((70,70,220))
-        else:
-            self.water.fill((100,100,250))
-        if screenY < -700:
-            self.water.fill((40,40,180))
+        # if screenY < -500:
+        #     self.water.fill((46,166,204))
+        # else:
+        #     self.water.fill((100,100,250))
+        # if screenY < -700:
+        #     self.water.fill((40,40,180))
+        self.water.fill((46,166,204))
 
         self.waterRect = self.water.get_rect()
         self.waterRect2 = self.water2.get_rect()
@@ -653,19 +670,23 @@ class GameScreen(Screen):
         self.water2.fill((100,100,250,50))
         # print(self.waterRect.w)
 
+        self.gameScreenS = pygame.Surface((WIDTH - self.screenPos[0] + 2, HEIGHT - self.screenPos[1]))
+
         for i, background in enumerate(self.backgrounds):
             if background[1].right > abs(currentScreen.screenPos[0]) and background[1].left < WIDTH + abs(currentScreen.screenPos[0]) and background[1].bottom > abs(currentScreen.screenPos[1]) and background[1].top < HEIGHT + abs(currentScreen.screenPos[1]):
-                screenS.blit(background[0], background[1])
+                self.gameScreenS.blit(background[0], background[1])
                 # print("BLITTING BACKGROUND", i)
-        screenS.blit(self.water, self.waterRect)
-        screenS.blit(self.harbor, self.harborRect)
-        # screenS.blit(self.text, [0,0])
-        screenS.blit(self.moneyText, self.moneyRect)
-        screenS.blit(self.capacityText, self.capacityRect)
+        self.gameScreenS.blit(self.water, self.waterRect)
+        self.gameScreenS.blit(self.harbor, self.harborRect)
+        screenS.blit(self.shops, self.shopsRect)
+        # self.gameScreenS.blit(self.text, [0,0])
+        self.gameScreenS.blit(self.moneyText, self.moneyRect)
+        self.gameScreenS.blit(self.capacityText, self.capacityRect)
+        
 
         self.harborText.set_alpha(self.harborTextOpacity)
         if self.harborTextOpacity > 0:
-            screenS.blit(self.harborText, self.harborTextRect)
+            self.gameScreenS.blit(self.harborText, self.harborTextRect)
 
         # print(self.screenPos, self.boat.x)
         
@@ -709,8 +730,14 @@ class GameScreen(Screen):
         else:
             self.directionX = 0
 
+        print(self.screenPos[0])
+
         if self.screenPos[0] <= 0 and self.screenPos[0] - WIDTH >= -self.endOfMap:
+            print(self.directionX, random.random())
             self.screenPos[0] += self.directionX * (self.boat.speed if (self.boat.staticRect.centerx - abs(self.screenPos[0])) <= 250 or abs(self.boat.staticRect.centerx - abs(self.screenPos[0] - WIDTH)) <= 250 else self.cameraSpeed)
+        
+        if self.screenPos[0] > 0:
+            self.screenPos[0] = 0
 
 
         self.screenPos[1] += self.directionY * self.cameraSpeed
@@ -725,10 +752,12 @@ class GameScreen(Screen):
         else:
             self.boat.update(self.isFishing)
 
-        screenS.blit(self.water2, self.water2Rect)
+        # screenS.blit(self.water2, self.water2Rect)
         
         if self.fishInvetoryShow:
             self.fishInventory.update()
+
+        screenS.blit(self.gameScreenS, self.gsPos)
 
     def keyDown(self, key):
         if key == pygame.K_a:
@@ -750,13 +779,13 @@ class GameScreen(Screen):
 
         if key == pygame.K_DOWN:
             if not self.fishInvetoryShow:
-                self.downPressed = True
+                self.upPressed = True
             else:
                 self.fishInventory.moveDown = True
 
         if key == pygame.K_UP:
             if not self.fishInvetoryShow:
-                self.upPressed = True
+                self.downPressed = True
             else:
                 self.fishInventory.moveUp = True
 
@@ -997,7 +1026,11 @@ while running:
     # print((WIDTH - currentScreen.screenPos[0] + 2, HEIGHT - currentScreen.screenPos[1] + 2))
     screenS = pygame.Surface((WIDTH - currentScreen.screenPos[0] + 2, HEIGHT - currentScreen.screenPos[1] + 2))
 
-    screen.fill([255,255,255])
+    if isinstance(currentScreen, GameScreen):
+        color = currentScreen.shops.get_at((0,400))
+    else:
+        color = (255,255,255)
+    screenS.fill(color)
 
     currentScreen.update()
 
