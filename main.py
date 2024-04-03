@@ -413,9 +413,10 @@ class Boat:
         rect = [self.defaultBaitPos[0] - (self.endingPoint[0]-self.defaultBaitPos[0]),self.defaultBaitPos[1], (self.endingPoint[0]-self.defaultBaitPos[0])*2, (self.endingPoint[1] - self.defaultBaitPos[1])*2]
         # pygame.draw.rect(screenS, [255,0,0],  rect)
         if self.endingPoint[0] - self.defaultBaitPos[0] > 3:
-            pygame.draw.arc(currentScreen.gameScreenS, [0,0,0], rect, math.radians(self.a1), math.radians(self.a2), 1)
+            pygame.draw.arc(currentScreen.gameScreenS, [255,255,255], rect, math.radians(self.a1), math.radians(self.a2), 2)
+            # pygame.draw.aaline(currentScreen.gameScreenS, [0,0,0], self.defaultBaitPos, self.endingPoint)
         else:
-            pygame.draw.aaline(currentScreen.gameScreenS, [0,0,0], self.defaultBaitPos, self.endingPoint)
+            pygame.draw.aaline(currentScreen.gameScreenS, [255,255,255], self.defaultBaitPos, self.endingPoint)
 
         self.prutRect.bottomleft = (self.staticRect.right - 40, self.rect.top + 100)
 
