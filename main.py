@@ -687,18 +687,17 @@ class GameScreen(Screen):
         self.water2.fill((100,100,250,50))
         # print(self.waterRect.w)
 
-        if self.outOfSilon:
-            if self.silonTextOpacity > 200:
-                self.fade = -10
-            elif self.silonTextOpacity < 50:
-                self.fade = 10
-            
-            print(self.silonTextOpacity)
+        if self.silonTextOpacity > 200:
+            self.fade = -10
+        elif self.silonTextOpacity < 50 and self.outOfSilon:
+            self.fade = 10
+        
+        print(self.silonTextOpacity)
 
-            self.silonTextOpacity += self.fade
+        self.silonTextOpacity += self.fade
 
-            self.silonTextRect.center = [WIDTH//2 - self.screenPos[0], HEIGHT//2 - self.screenPos[1] - 100]
-            self.silonText.set_alpha(self.silonTextOpacity)
+        self.silonTextRect.center = [WIDTH//2 - self.screenPos[0], HEIGHT//2 - self.screenPos[1] - 100]
+        self.silonText.set_alpha(self.silonTextOpacity)
 
         self.gameScreenS = pygame.Surface((WIDTH - self.screenPos[0] + 2, HEIGHT - self.screenPos[1]))
 
@@ -773,7 +772,7 @@ class GameScreen(Screen):
         for fish in self.fishes:
             fish.update()
 
-        if self.isFishing and self.outOfSilon:
+        if self.isFishing and self.silonTextOpacity > 5:
             self.gameScreenS.blit(self.silonText, self.silonTextRect)
         else:
             self.silonTextOpacity = 0
