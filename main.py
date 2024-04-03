@@ -272,8 +272,9 @@ class Boat:
         self.prutRect = self.prut.get_rect()
         self.prutRect.bottomleft = (self.staticRect.right - 40, self.rect.top + 100)
 
-        self.bait = pygame.Surface((20,20))
-        self.bait.fill((0,255,0))
+        # self.bait = pygame.Surface((20,20))
+        self.bait = load_image("img/bait.png")
+        # self.bait.fill((0,255,0))
         self.baitRect = self.bait.get_rect()
 
         self.x = WIDTH//2
@@ -537,10 +538,10 @@ class GameScreen(Screen):
         # self.blockRect = self.block.get_rect()
         # self.blockRect.center = [10,200]
 
-        self.silonText = self.harborFont.render("Out of silon", False, [255,255,255])
+        self.silonText = self.harborFont.render("Out of line", False, [255,255,255])
         self.silonTextRect = self.silonText.get_rect()
         self.silonTextRect.center = [WIDTH//2 + self.screenPos[0], HEIGHT//2 + self.screenPos[1]]
-        self.silonTextOpacity = 255
+        self.silonTextOpacity = 0
         self.fade = 0
         self.outOfSilon = False
 
@@ -686,17 +687,18 @@ class GameScreen(Screen):
         self.water2.fill((100,100,250,50))
         # print(self.waterRect.w)
 
-        if self.silonTextOpacity > 200:
-            self.fade = -10
-        elif self.silonTextOpacity < 50:
-            self.fade = 10
-        
-        print(self.silonTextOpacity)
+        if self.outOfSilon:
+            if self.silonTextOpacity > 200:
+                self.fade = -10
+            elif self.silonTextOpacity < 50:
+                self.fade = 10
+            
+            print(self.silonTextOpacity)
 
-        self.silonTextOpacity += self.fade
+            self.silonTextOpacity += self.fade
 
-        self.silonTextRect.center = [WIDTH//2 - self.screenPos[0], HEIGHT//2 - self.screenPos[1] - 100]
-        self.silonText.set_alpha(self.silonTextOpacity)
+            self.silonTextRect.center = [WIDTH//2 - self.screenPos[0], HEIGHT//2 - self.screenPos[1] - 100]
+            self.silonText.set_alpha(self.silonTextOpacity)
 
         self.gameScreenS = pygame.Surface((WIDTH - self.screenPos[0] + 2, HEIGHT - self.screenPos[1]))
 
@@ -770,9 +772,11 @@ class GameScreen(Screen):
 
         for fish in self.fishes:
             fish.update()
-            
+
         if self.isFishing and self.outOfSilon:
             self.gameScreenS.blit(self.silonText, self.silonTextRect)
+        else:
+            self.silonTextOpacity = 0
 
         if self.isFishing:
             self.boat.update(self.isFishing, self.screenPos)
