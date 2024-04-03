@@ -2,7 +2,7 @@ import pygame, random, math, os, json, numpy
 
 pygame.init()
 
-def load_image(filename):
+def load_image(filename, resolutionScale = 2):
     rawImg = pygame.image.load(filename).convert_alpha()
     brighten = 0
     rawImg.fill((brighten, brighten, brighten), special_flags=pygame.BLEND_RGB_ADD) 
@@ -264,7 +264,7 @@ class Fish:
 class Boat:
     def __init__(self):
         global currentScreen
-        self.image = load_image("img/boat1.png")
+        self.image = load_image("img/boat1.png", 2.25)
         self.rect = self.image.get_rect()
         self.staticRect = self.image.get_rect()
 
@@ -389,7 +389,8 @@ class Boat:
                 if currentScreen.rightPressed:
                     self.baitX += -currentScreen.directionX
 
-            self.baitY += (-currentScreen.directionY + (0 if self.caughtFish else 0.5)) if not equalPlusMinus(self.currentSilon, self.silonMax, 0.1) else 0
+            # self.baitY += (-currentScreen.directionY + (0 if self.caughtFish else 0.75)) if not equalPlusMinus(self.currentSilon, self.silonMax, 0.1) else 0
+            self.baitY += -1.5 if currentScreen.directionY > 0 else 1
 
 
         self.endingPoint = self.baitRect.center
@@ -808,15 +809,11 @@ class GameScreen(Screen):
                 self.fishInvetoryShow = False
 
         if key == pygame.K_DOWN:
-            if not self.fishInvetoryShow:
-                self.upPressed = True
-            else:
+            if self.fishInvetoryShow:
                 self.fishInventory.moveDown = True
 
         if key == pygame.K_UP:
-            if not self.fishInvetoryShow:
-                self.downPressed = True
-            else:
+            if self.fishInvetoryShow:
                 self.fishInventory.moveUp = True
 
         if key == pygame.K_SPACE and self.boat.staticRect.centerx != WIDTH//2:
