@@ -165,9 +165,13 @@ class Fish:
 
         self.speed = random.uniform(0.5, 1.2)
 
+        self.scared = False
         self.caught = False
         self.drop = False
         self.baitPos = [0,0]
+
+        self.escapeSpeed = 2.7
+        self.currentSpeed = self.speed
 
         self.upDown = random.choice([-1,1])
         # self.directionY = -1
@@ -177,22 +181,59 @@ class Fish:
 
         self.turnPos = self.x + random.randint(50,300)*self.direction
 
+    def scare(self, caughtFishRect: pygame.Rect):
+        if not self.scared:
+            self.currentSpeed = self.escapeSpeed
+            if caughtFishRect.centerx > self.rect.centerx:
+                if self.direction == 1:
+                    self.changeDirectionX(direction = -1, turnPosDis = 200)
+            else:
+                if self.direction == -1:
+                    self.changeDirectionX(direction = 1, turnPosDis = 200)
+
+            if caughtFishRect.centery > self.rect.centery:
+                self.changeDirectionY(-1)
+            else:
+                self.changeDirectionY(1)
+        self.scared = True
+
+    def changeDirectionX(self, direction = 0, turnPosDis = None):
+        if direction == 0:
+            self.direction *= -1
+            self.image = pygame.transform.flip(self.image, True, False)
+        else:
+            if self.direction != direction:
+                self.image = pygame.transform.flip(self.image, True, False)
+            self.direction = direction
+        if turnPosDis == None:
+            self.turnPos = self.x + random.randint(50,300)*self.direction
+        else:
+            self.turnPos = self.x + turnPosDis * self.direction
+        self.directionY = random.choice([-1,1])
+        self.upDown = random.choice([-1,1])
+
+    def changeDirectionY(self, direction = 0):
+        if direction == 0:
+            self.directionY = random.choice([-1,1])
+        else:
+            self.directionY = direction
+
     def update(self):
         global currentScreen
         if not self.caught:
-            if self.x < self.turnPos and self.direction < 0:
-                self.direction *= -1
-                self.image = pygame.transform.flip(self.image, True, False)
-                self.turnPos = self.x + random.randint(50,300)*self.direction
-                self.directionY = random.choice([-1,1])
-                self.upDown = random.choice([-1,1])
-            
-            if self.x > self.turnPos and self.direction > 0:
-                self.direction *= -1
-                self.image = pygame.transform.flip(self.image, True, False)
-                self.turnPos = self.x + random.randint(50,300)*self.direction
-                self.directionY = random.choice([-1,1])
-                self.upDown = random.choice([-1,1])
+            if not self.scared:
+                if self.x < self.turnPos and self.direction < 0:
+                    self.changeDirectionX()
+                
+                if self.x > self.turnPos and self.direction > 0:
+                    self.changeDirectionX()
+            else:
+                if self.currentSpeed > self.speed:
+                    self.currentSpeed -= 0.01
+                    print(self.currentSpeed)
+                else:
+                    self.currentSpeed = self.speed
+                    self.scared = False
             
             # if self.x < WIDTH//3-1:
             #     self.direction *= -1
@@ -216,8 +257,8 @@ class Fish:
             self.rect.center = [self.x, self.y]
 
             # self.angle += self.directionY/20
-            self.x += self.speed * self.direction
-            self.y += self.speed/4 * self.directionY
+            self.x += self.currentSpeed * self.direction
+            self.y += self.currentSpeed/(2 if self.scared else 4) * self.directionY
             # self.y += self.directionY * abs(math.radians(self.angle))
             self.imageR = pygame.transform.rotate(self.image, self.angle)
             self.rectR = self.imageR.get_rect()
@@ -279,7 +320,7 @@ class Boat:
         # self.bait.fill((0,255,0))
         self.baitRect = self.bait.get_rect()
 
-        self.x = WIDTH//2
+        self.x = WIDTH//2 + 700
         self.y = 0
         self.yM = 0
 
@@ -287,7 +328,7 @@ class Boat:
         self.baitY = 0
 
         # 200px = 1m
-        self.silonMax = 5
+        self.silonMax = 10 + 0.5
         self.currentSilon = 0
 
         self.maxDiff = 4
@@ -337,7 +378,10 @@ class Boat:
         else:
             currentScreen.outOfSilon = False
 
-        self.depthText = currentScreen.font.render(f'{int(((self.defaultBaitPos[1] + self.baitY)/100-2.7)*100)/100}m', False, (255,255,255))
+        depth = int(((self.defaultBaitPos[1] + self.baitY)/100-2.7)*100)/100
+        if depth < 0:
+            depth = 0
+        self.depthText = currentScreen.font.render(f'{depth}m', False, (255,255,255))
         self.depthTextRect = self.depthText.get_rect()
         self.depthTextRect.center = [self.baitRect.centerx, self.baitRect.centery + 50]
 
@@ -392,12 +436,13 @@ class Boat:
                     currentScreen.directionY = 0
                 else:
                     self.baitY -= 0.1
-            if self.baitX + self.staticRect.right > self.staticRect.right:
-                self.baitX += -currentScreen.directionX
-                pass
-            else:
-                if currentScreen.rightPressed:
+            if self.baitRect.right < currentScreen.endOfMap - 150:
+                if self.baitX + self.staticRect.right > self.staticRect.right:
                     self.baitX += -currentScreen.directionX
+                    pass
+                else:
+                    if currentScreen.rightPressed:
+                        self.baitX += -currentScreen.directionX
 
             # self.baitY += (-currentScreen.directionY + (0 if self.caughtFish else 0.75)) if not equalPlusMinus(self.currentSilon, self.silonMax, 0.1) else 0
             self.baitY += (-1.5 if currentScreen.directionY > 0 else 1) if not equalPlusMinus(self.currentSilon, self.silonMax, 0.1) else 0
@@ -585,6 +630,8 @@ class GameScreen(Screen):
         self.capacityText = self.font.render(f'Capacity: {self.capacity}/{self.maxCapacity}', False, [0,0,0])
         self.capacityRect = self.capacityText.get_rect()
 
+        self.scareRadius = pygame.Rect(0, 0, 200, 200)
+
     def update(self):
         self.currentCameraPos = [self.defaultBoatX + self.screenPos[0], 0]
 
@@ -607,18 +654,22 @@ class GameScreen(Screen):
             if self.fishCollideIndex != -1:
                 if self.boat.caughtFishIndex == -1:
                     self.boat.caughtFishIndex = self.fishCollideIndex
+                if self.boat.caughtFishIndex == self.fishCollideIndex:                    
                     self.fishes[self.fishCollideIndex].caught = True
                     self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
                     self.boat.caughtFish = True
                     self.boat.gotoPos = self.boat.defaultBaitPos.copy()
                     self.boat.fromPos = list(self.boat.baitRect.center)
-                    # print("CAUGHT!!!")
-                elif self.boat.caughtFishIndex == self.fishCollideIndex:                    
-                    self.fishes[self.fishCollideIndex].caught = True
-                    self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
-                    self.boat.caughtFish = True
-                    self.boat.gotoPos = self.boat.defaultBaitPos.copy()
-                    self.boat.fromPos = list(self.boat.baitRect.center)
+
+                    self.scareRadius = pygame.Rect(0, 0, 400, 300)
+                    self.scareRadius.center = self.fishes[self.fishCollideIndex].rect.center
+                    for fishIndex in self.scareRadius.collidelistall([fish.hitBoxRect for fish in self.fishes]):
+                        if fishIndex != self.fishCollideIndex:
+                            self.fishes[fishIndex].scare(self.fishes[self.fishCollideIndex].rect)
+                    
+
+                    self.fishes[self.fishCollideIndex].scared = False
+                    
                     # print("CAUGHT!!!")
 
         if self.isFishing:
@@ -801,41 +852,47 @@ class GameScreen(Screen):
         if self.fishInvetoryShow:
             self.fishInventory.update()
 
+        # pygame.draw.rect(self.gameScreenS, [255,0,0], self.scareRadius)
+
         screenS.blit(self.gameScreenS, self.gsPos)
 
     def keyDown(self, key):
-        if key == pygame.K_a:
-            self.leftPressed = True
+        if not self.boat.throwingBait:
+            if key == pygame.K_a:
+                self.leftPressed = True
 
-        if key == pygame.K_d:
-            self.rightPressed = True
+            if key == pygame.K_d:
+                self.rightPressed = True
 
-        if key == pygame.K_s:
-            self.upPressed = True
-        
-        if key == pygame.K_w:
-            self.downPressed = True
+            if key == pygame.K_s:
+                self.upPressed = True
+            
+            if key == pygame.K_w:
+                self.downPressed = True
 
-        if key == pygame.K_i:
-            self.fishInvetoryShow = not self.fishInvetoryShow
-            if self.isFishing:
-                self.fishInvetoryShow = False
+            if key == pygame.K_i:
+                self.fishInvetoryShow = not self.fishInvetoryShow
+                if self.isFishing:
+                    self.fishInvetoryShow = False
 
-        if key == pygame.K_DOWN:
-            if self.fishInvetoryShow:
-                self.fishInventory.moveDown = True
+            if key == pygame.K_DOWN:
+                if self.fishInvetoryShow:
+                    self.fishInventory.moveDown = True
 
-        if key == pygame.K_UP:
-            if self.fishInvetoryShow:
-                self.fishInventory.moveUp = True
+            if key == pygame.K_UP:
+                if self.fishInvetoryShow:
+                    self.fishInventory.moveUp = True
 
-        if key == pygame.K_SPACE and self.boat.staticRect.centerx != WIDTH//2:
+        if key == pygame.K_SPACE and (self.isFishing or self.boat.staticRect.centerx != WIDTH//2):
             if not self.fishInvetoryShow:
                 if not self.isFishing:
                     self.boat.throwingBait = True
                     self.isFishing = True
                 elif not self.boat.throwingBait:
-                    self.boat.rollBack = True
+                    if not self.boat.rollBack:
+                        self.boat.rollBack = True
+                    else:
+                        self.boat.rollBack = False
                     self.boat.fromPos = list(self.boat.baitRect.center)
                     self.boat.gotoPos = self.boat.defaultBaitPos.copy()
             # self.screenPos[0] = -self.boat.baitRect.centerx + WIDTH//2
