@@ -230,17 +230,9 @@ class Fish:
             else:
                 if self.currentSpeed > self.speed:
                     self.currentSpeed -= 0.01
-                    print(self.currentSpeed)
                 else:
                     self.currentSpeed = self.speed
                     self.scared = False
-            
-            # if self.x < WIDTH//3-1:
-            #     self.direction *= -1
-            #     self.turnPos = self.x + random.randint(50,300) * self.direction
-            #     self.image = pygame.transform.flip(self.image, True, False)
-            #     self.directionY = 1
-            #     self.upDown = random.choice([-1,1])
 
             if self.y < self.levelRange[0]:
                 self.directionY = 1
@@ -320,15 +312,15 @@ class Boat:
         # self.bait.fill((0,255,0))
         self.baitRect = self.bait.get_rect()
 
-        self.x = WIDTH//2 + 700
-        self.y = 0
+
+        self.x, self.y = json.load(open("boatSave.json"))["pos"]
         self.yM = 0
 
         self.baitX = 0
         self.baitY = 0
 
         # 200px = 1m
-        self.silonMax = 10 + 0.5
+        self.silonMax = 5 + 0.5
         self.currentSilon = 0
 
         self.maxDiff = 4
@@ -462,6 +454,7 @@ class Boat:
             # pygame.draw.aaline(currentScreen.gameScreenS, [0,0,0], self.defaultBaitPos, self.endingPoint)
         else:
             pygame.draw.aaline(currentScreen.gameScreenS, [255,255,255], self.defaultBaitPos, self.endingPoint)
+            pygame.draw.aaline(currentScreen.gameScreenS, [255,255,255], [self.defaultBaitPos[0] + 1, self.defaultBaitPos[1]], [self.endingPoint[0] + 1, self.endingPoint[1]])
 
         self.prutRect.bottomleft = (self.staticRect.right - 40, self.rect.top + 100)
 
@@ -518,7 +511,7 @@ class GameScreen(Screen):
         self.screenPos = [0, 0]
         self.cameraOutOfBounds = False
 
-        self.money = 100
+        self.money = json.load(open("inventorySave.json"))["money"]
         self.maxCapacity = 10
         self.capacity = 0
 
@@ -532,7 +525,8 @@ class GameScreen(Screen):
         self.shops = load_image(f'img/{self.region}/backgrounds/obchody.png')
         self.shopsRect = self.shops.get_rect()
         self.shopsRect.topright = [0,0]
-        self.showShops = False
+        self.transition = 0
+        self.showingShops = False
 
         self.background = load_image(f'img/{self.region}/backgrounds/pozadie.png')
         self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(2)]
@@ -557,7 +551,7 @@ class GameScreen(Screen):
         self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
         self.harborRect = self.harbor.get_rect()
         self.harborRect.centery = self.waterRect.top - 20
-        print(self.harborRect.top)
+        # print(self.harborRect.top)
         self.harborRect.left = 0
 
         self.harborFont = pygame.font.Font(None, 70)
@@ -578,9 +572,10 @@ class GameScreen(Screen):
         self.originalFishNames = [imgName.removesuffix(".png") for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
         self.fishNames = genFishNamesForRarity(self.originalFishNames, self.fishRarity)
         print(self.fishNames)
-        self.fishInventoryDict = dict()
-        for name in self.fishNames:
-            self.fishInventoryDict[name] = 0
+        self.fishInventoryDict = json.load(open("inventorySave.json"))["inventory"]
+        for name in self.originalFishNames:
+            if self.fishInventoryDict[name] > 0:
+                self.capacity += self.fishInventoryDict[name]
         print(self.fishInventoryDict)
         print(self.fishInventoryDict)
         # self.fishAmount = 25
@@ -613,6 +608,7 @@ class GameScreen(Screen):
         self.rightPressed = False
         self.downPressed = False
         self.upPressed = False
+        self.usePressed = False
 
         self.correctCameraPos = [self.defaultBoatX, 0]
         self.currentCameraPos = [self.defaultBoatX + self.boat.x, 0]
@@ -637,7 +633,7 @@ class GameScreen(Screen):
 
         self.moneyText = self.font.render(f'Money: {self.money}', False, [0,0,0])
         self.moneyRect = self.moneyText.get_rect()
-        self.moneyRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 10]
+        self.moneyRect.topleft = [-self.screenPos[0] + 10, -self.screenPos[1] + 10]
 
         self.capacityText = self.font.render(f'Capacity: {self.capacity}/{self.maxCapacity}', False, [0,0,0])
         self.capacityRect = self.capacityText.get_rect()
@@ -645,6 +641,8 @@ class GameScreen(Screen):
 
         # self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
         # self.background.fill((100,150,100))
+
+        # print(self.usePressed)
 
         anyFishDropping = True if (True in [fish.drop for fish in self.fishes]) else False
 
@@ -687,6 +685,7 @@ class GameScreen(Screen):
         else:
             # print("DOCKED IN")
             self.boat.dockedIn = True
+            # self.usePressed = False
             if self.harborTextOpacity < 255:
                 self.harborTextOpacity += 5
             else:
@@ -699,14 +698,27 @@ class GameScreen(Screen):
                     # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
                     self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
 
-        # if self.leftPressed and self.boat.dockedIn:
-        #     self.showShops = True
+        if self.usePressed and self.boat.dockedIn: 
+            if self.showingShops:
+                self.transition = -1
+            else:
+                self.transition = 1
 
-        if self.showShops:
-            self.gsPos[0] += 3
-            self.shopsRect.right += 3
-            if self.gsPos[0] >= WIDTH:
-                self.showShops = False
+        self.gsPos[0] += 3 * self.transition
+        self.shopsRect.right += 3 * self.transition
+        # print(self.gsPos[0], WIDTH)
+        if self.gsPos[0] >= WIDTH:
+            self.gsPos[0] = WIDTH
+            self.shopsRect.right = WIDTH
+            self.transition = 0
+            self.usePressed = False
+            self.showingShops = True
+        elif self.gsPos[0] < 0:
+            self.gsPos[0] = 0
+            self.shopsRect.right = 0
+            self.transition = 0
+            self.usePressed = False
+            self.showingShops = False
 
         if not self.isFishing:
             if (not equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 3) and self.directionX == 0):
@@ -757,7 +769,7 @@ class GameScreen(Screen):
         elif self.silonTextOpacity < 50 and self.outOfSilon:
             self.fade = 10
         
-        print(self.silonTextOpacity)
+        # print(self.silonTextOpacity)
 
         self.silonTextOpacity += self.fade
 
@@ -774,7 +786,8 @@ class GameScreen(Screen):
         self.gameScreenS.blit(self.harbor, self.harborRect)
         screenS.blit(self.shops, self.shopsRect)
         # self.gameScreenS.blit(self.text, [0,0])
-        self.gameScreenS.blit(self.moneyText, self.moneyRect)
+        if not (self.transition or self.showingShops):
+            self.gameScreenS.blit(self.moneyText, self.moneyRect)
         self.gameScreenS.blit(self.capacityText, self.capacityRect)
 
         self.harborText.set_alpha(self.harborTextOpacity)
@@ -813,10 +826,10 @@ class GameScreen(Screen):
 
         if not self.boat.caughtFish:
             if self.downPressed:
-                self.directionY = 1
+                self.directionY = -1
                 self.upPressed = False
             elif self.upPressed:
-                self.directionY = -1
+                self.directionY = 1
                 self.downPressed = False
             else:
                 self.directionY = 0
@@ -856,19 +869,22 @@ class GameScreen(Screen):
 
         screenS.blit(self.gameScreenS, self.gsPos)
 
+        if self.transition or self.showingShops:
+            screenS.blit(self.moneyText, self.moneyRect)
+
     def keyDown(self, key):
-        if not self.boat.throwingBait:
+        if not self.boat.throwingBait and (not self.transition and not self.showingShops):
             if key == pygame.K_a:
                 self.leftPressed = True
 
             if key == pygame.K_d:
                 self.rightPressed = True
 
-            if key == pygame.K_s:
-                self.upPressed = True
+            # if key == pygame.K_s and self.isFishing:
+                # self.upPressed = True
             
-            if key == pygame.K_w:
-                self.downPressed = True
+            if key == pygame.K_w and self.isFishing:
+                self.upPressed = True
 
             if key == pygame.K_i:
                 self.fishInvetoryShow = not self.fishInvetoryShow
@@ -883,7 +899,7 @@ class GameScreen(Screen):
                 if self.fishInvetoryShow:
                     self.fishInventory.moveUp = True
 
-        if key == pygame.K_SPACE and (self.isFishing or self.boat.staticRect.centerx != WIDTH//2):
+        if key == pygame.K_e and (self.isFishing or self.boat.staticRect.centerx != WIDTH//2):
             if not self.fishInvetoryShow:
                 if not self.isFishing:
                     self.boat.throwingBait = True
@@ -895,6 +911,9 @@ class GameScreen(Screen):
                         self.boat.rollBack = False
                     self.boat.fromPos = list(self.boat.baitRect.center)
                     self.boat.gotoPos = self.boat.defaultBaitPos.copy()
+
+        if key == pygame.K_e:
+            self.usePressed = not self.usePressed
             # self.screenPos[0] = -self.boat.baitRect.centerx + WIDTH//2
             # self.screenPos[1] = -self.boat.baitRect.centery + HEIGHT//2
 
@@ -905,7 +924,7 @@ class GameScreen(Screen):
         if key == pygame.K_d:
             self.rightPressed = False
 
-        if key == pygame.K_s:
+        if key == pygame.K_w:
             self.upPressed = False
         
         if key == pygame.K_w:
@@ -1104,6 +1123,20 @@ while running:
     clock.tick(60)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            if isinstance(currentScreen, GameScreen):
+                #Saving inventory
+                with open("inventorySave.json", "w") as inventoryFile:
+                    inventoryData = dict()
+                    inventoryData["inventory"] = currentScreen.fishInventoryDict
+                    inventoryData["money"] = currentScreen.money
+                    json.dump(inventoryData, inventoryFile)
+
+                with open("boatSave.json", "w") as boatFile:
+                    boatData = dict()
+                    boatData["pos"] = [currentScreen.boat.x, currentScreen.boat.y]
+
+                    json.dump(boatData, boatFile)
+
             running = False
     
         if event.type == pygame.MOUSEBUTTONDOWN:
