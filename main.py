@@ -354,7 +354,7 @@ class Boat:
         self.a1 = 0
         self.a2 = 90
 
-        self.dockedIn = True
+        self.dockedIn = False
 
     def update(self, isFishing, baitSpeed = 0):
         self.defaultY = currentScreen.waterRect.top
@@ -478,6 +478,7 @@ class Boat:
                 # self.baitRect.center = (self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY)
             else:
                 currentScreen.isFishing = False
+                currentScreen.usePressed = False
                 currentScreen.directionY = 0
                 self.throwingBait = False
                 self.baitRect.center = self.defaultBaitPos.copy()
@@ -684,7 +685,8 @@ class GameScreen(Screen):
                 self.harborTextOpacity -= 5
         else:
             # print("DOCKED IN")
-            self.boat.dockedIn = True
+            if not self.boat.dockedIn:
+                self.boat.dockedIn = True
             # self.usePressed = False
             if self.harborTextOpacity < 255:
                 self.harborTextOpacity += 5
@@ -698,7 +700,7 @@ class GameScreen(Screen):
                     # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
                     self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
 
-        if self.usePressed and self.boat.dockedIn: 
+        if self.usePressed and self.boat.dockedIn and not self.isFishing: 
             if self.showingShops:
                 self.transition = -1
             else:
