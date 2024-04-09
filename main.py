@@ -259,6 +259,9 @@ class Fish:
 
             if self.rect.right > abs(currentScreen.screenPos[0]) and self.rect.left < WIDTH + abs(currentScreen.screenPos[0]) and self.rect.bottom > abs(currentScreen.screenPos[1]) and self.rect.top < HEIGHT + abs(currentScreen.screenPos[1]):
                 currentScreen.gameScreenS.blit(self.imageR, self.rectR)
+            if self.rect.right < 0 or self.rect.left > currentScreen.endOfMap:
+                currentScreen.fishes.remove(self)
+                currentScreen.totalFishAmount -= 1
             if self.showFishLevels:
                 pygame.draw.aaline(currentScreen.gameScreenS, [255,0,0], [0, self.levelRange[0]], [2000, self.levelRange[0]])
                 pygame.draw.aaline(currentScreen.gameScreenS, [0,255,0], [0, self.levelRange[1]], [2000, self.levelRange[1]])
@@ -314,7 +317,7 @@ class Boat:
         self.baitRect = self.bait.get_rect()
 
 
-        self.x, self.y = json.load(open("boatSave.json"))["pos"]
+        self.x, self.y = json.load(open("boatSave.json"))["boatPos"]
         self.yM = 0
 
         self.baitX = 0
@@ -510,7 +513,9 @@ class GameScreen(Screen):
         self.gameScreenS = pygame.Surface((WIDTH, HEIGHT))
         self.gsPos = [0,0]
 
-        self.screenPos = [0, 0]
+        self.boatSave = json.load(open("boatSave.json"))
+
+        self.screenPos = self.boatSave["screenPos"]
         self.cameraOutOfBounds = False
 
         self.money = json.load(open("inventorySave.json"))["money"]
@@ -558,7 +563,7 @@ class GameScreen(Screen):
 
         self.harborFont = pygame.font.Font(None, 70)
 
-        self.harborTextOpacity = 255
+        self.harborTextOpacity = 0
         self.harborText = self.harborFont.render("Harbor", False, (0,0,0)).convert_alpha()
         self.harborText.set_alpha(self.harborTextOpacity)
         self.harborTextRect = self.harborText.get_rect()
@@ -587,6 +592,7 @@ class GameScreen(Screen):
         self.fishes = []
 
         for i in range(self.fishAmount):
+            self.totalFishAmount += 1
             self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
 
         # self.block = pygame.Surface([200, 200])
@@ -631,6 +637,8 @@ class GameScreen(Screen):
         self.scareRadius = pygame.Rect(0, 0, 200, 200)
 
     def update(self):
+        print(self.totalFishAmount)
+
         self.currentCameraPos = [self.defaultBoatX + self.screenPos[0], 0]
 
         self.moneyText = self.font.render(f'Money: {self.money}', False, [0,0,0])
@@ -699,8 +707,12 @@ class GameScreen(Screen):
             for fish in self.fishes:
                 if fish.rect.right < 0 or fish.rect.left > self.endOfMap:
                     self.fishes.remove(fish)
+                    self.totalFishAmount -= 1
                     # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
-                    self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
+        
+        if self.totalFishAmount < self.fishAmount:
+            self.totalFishAmount += 1
+            self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
 
         if self.usePressed and self.boat.dockedIn and not self.isFishing:
             if self.showingShops:
@@ -1145,7 +1157,11 @@ while running:
 
                 with open("boatSave.json", "w") as boatFile:
                     boatData = dict()
-                    boatData["pos"] = [currentScreen.boat.x, currentScreen.boat.y]
+                    boatData["boatPos"] = [currentScreen.boat.x, currentScreen.boat.y]
+                    if currentScreen.isFishing:
+                        boatData["screenPos"] = [-currentScreen.boat.x + WIDTH//2, -currentScreen.boat.y + HEIGHT//2]
+                    else:
+                        boatData["screenPos"] = currentScreen.screenPos
 
                     json.dump(boatData, boatFile)
 
