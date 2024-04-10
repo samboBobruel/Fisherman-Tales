@@ -710,7 +710,7 @@ class GameScreen(Screen):
                     self.totalFishAmount -= 1
                     # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
         
-        if self.totalFishAmount < self.fishAmount:
+        if self.totalFishAmount < self.fishAmount and self.boat.caughtFish:
             self.totalFishAmount += 1
             self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
 
@@ -797,7 +797,8 @@ class GameScreen(Screen):
 
         self.silonTextOpacity += self.fade
 
-        self.silonTextRect.center = [WIDTH//2 - self.screenPos[0], HEIGHT//2 - self.screenPos[1] - 100]
+        # self.silonTextRect.center = [WIDTH//2 - self.screenPos[0], HEIGHT//2 - self.screenPos[1] - 100]
+        self.silonTextRect.center = (self.boat.baitRect.centerx, self.boat.baitRect.centery - 50)
         self.silonText.set_alpha(self.silonTextOpacity)
 
         self.gameScreenS = pygame.Surface((WIDTH - self.screenPos[0] + 2, HEIGHT - self.screenPos[1]))
