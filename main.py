@@ -544,6 +544,8 @@ class GameScreen(Screen):
         self.endOfMap *= 2
 
         # self.boat.x = self.endOfMap - WIDTH//2
+
+        self.waterTexture = load_image('img/waterTexture.png')
         
         self.water = pygame.Surface([WIDTH + self.screenPos[0], 162], pygame.SRCALPHA)
         self.water.fill((46,166,204))
@@ -637,7 +639,7 @@ class GameScreen(Screen):
         self.scareRadius = pygame.Rect(0, 0, 200, 200)
 
     def update(self):
-        print(self.totalFishAmount)
+        # print(self.totalFishAmount)
 
         self.currentCameraPos = [self.defaultBoatX + self.screenPos[0], 0]
 
@@ -783,8 +785,8 @@ class GameScreen(Screen):
 
         self.waterRect = self.water.get_rect()
         self.waterRect2 = self.water2.get_rect()
-        self.waterRect.bottomleft = [-self.screenPos[0], HEIGHT - self.screenPos[1]]
-        self.waterRect2.bottomleft = [-self.screenPos[0], HEIGHT - self.screenPos[1]]
+        self.waterRect.bottomleft = [0, HEIGHT - self.screenPos[1]]
+        self.waterRect2.bottomleft = [0, HEIGHT - self.screenPos[1]]
         self.water2.fill((100,100,250,50))
         # print(self.waterRect.w)
 
@@ -807,6 +809,18 @@ class GameScreen(Screen):
             if background[1].right > abs(currentScreen.screenPos[0]) and background[1].left < WIDTH + abs(currentScreen.screenPos[0]) and background[1].bottom > abs(currentScreen.screenPos[1]) and background[1].top < HEIGHT + abs(currentScreen.screenPos[1]):
                 self.gameScreenS.blit(background[0], background[1])
                 # print("BLITTING BACKGROUND", i)
+
+        waterTextureRect = self.waterTexture.get_rect()
+        for line in range(0, self.endOfMap // waterTextureRect.w):
+            for column in range(0, self.waterRect.h // waterTextureRect.h + 1):
+                waterTextureRect.left = line * waterTextureRect.w
+                waterTextureRect.top = column * waterTextureRect.h
+                if waterTextureRect.left > -self.screenPos[0] - waterTextureRect.w and waterTextureRect.right < -self.screenPos[0] + WIDTH + waterTextureRect.w:
+                    if self.waterRect.top + waterTextureRect.top > -self.screenPos[1] - waterTextureRect.h and self.waterRect.top + waterTextureRect.top < -self.screenPos[1] + HEIGHT:
+                        # if waterTextureRect.top > -self.screenPos[1]:
+                        print(self.waterRect.top + waterTextureRect.top, -self.screenPos[1])
+                        self.water.blit(self.waterTexture, waterTextureRect)
+
         self.gameScreenS.blit(self.water, self.waterRect)
         self.gameScreenS.blit(self.harbor, self.harborRect)
         screenS.blit(self.shops, self.shopsRect)
