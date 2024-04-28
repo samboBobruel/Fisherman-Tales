@@ -691,27 +691,28 @@ class GameScreen(Screen):
 
         anyFishDropping = True if (True in [fish.drop for fish in self.fishes]) else False
 
-        if not anyFishDropping:
-            if not self.boat.caughtFish:
-                self.fishCollideIndex = self.boat.baitRect.collidelist([fish.hitBoxRect for fish in self.fishes])
-            if self.fishCollideIndex != -1:
-                if self.boat.caughtFishIndex == -1:
-                    self.boat.caughtFishIndex = self.fishCollideIndex
-                if self.boat.caughtFishIndex == self.fishCollideIndex:                    
-                    self.fishes[self.fishCollideIndex].caught = True
-                    self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
-                    self.boat.caughtFish = True
-                    self.boat.gotoPos = self.boat.defaultBaitPos.copy()
-                    self.boat.fromPos = list(self.boat.baitRect.center)
+        if self.isFishing:
+            if not anyFishDropping:
+                if not self.boat.caughtFish:
+                    self.fishCollideIndex = self.boat.baitRect.collidelist([fish.hitBoxRect for fish in self.fishes])
+                if self.fishCollideIndex != -1:
+                    if self.boat.caughtFishIndex == -1:
+                        self.boat.caughtFishIndex = self.fishCollideIndex
+                    if self.boat.caughtFishIndex == self.fishCollideIndex:                    
+                        self.fishes[self.fishCollideIndex].caught = True
+                        self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
+                        self.boat.caughtFish = True
+                        self.boat.gotoPos = self.boat.defaultBaitPos.copy()
+                        self.boat.fromPos = list(self.boat.baitRect.center)
 
-                    self.scareRadius = pygame.Rect(0, 0, 400, 300)
-                    self.scareRadius.center = self.fishes[self.fishCollideIndex].rect.center
-                    for fishIndex in self.scareRadius.collidelistall([fish.hitBoxRect for fish in self.fishes]):
-                        if fishIndex != self.fishCollideIndex:
-                            self.fishes[fishIndex].scare(self.fishes[self.fishCollideIndex].rect)
-                    
+                        self.scareRadius = pygame.Rect(0, 0, 400, 300)
+                        self.scareRadius.center = self.fishes[self.fishCollideIndex].rect.center
+                        for fishIndex in self.scareRadius.collidelistall([fish.hitBoxRect for fish in self.fishes]):
+                            if fishIndex != self.fishCollideIndex:
+                                self.fishes[fishIndex].scare(self.fishes[self.fishCollideIndex].rect)
+                        
 
-                    self.fishes[self.fishCollideIndex].scared = False
+                        self.fishes[self.fishCollideIndex].scared = False
                     
                     # print("CAUGHT!!!")
 
@@ -1185,7 +1186,7 @@ currentScreen = menuScreen
 running = True
 
 while running:
-    clock.tick(60)
+    clock.tick(30)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             if isinstance(currentScreen, GameScreen):
