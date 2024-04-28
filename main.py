@@ -1,4 +1,4 @@
-import pygame, random, math, os, json, numpy
+import pygame, random, math, os, json, numpy, webbrowser
 
 pygame.init()
 
@@ -40,6 +40,9 @@ screenS = pygame.Surface((WIDTH + screenX, HEIGHT))
 pygame.display.set_caption("Fisherman Tales", "Fisherman Tales")
 pygame.display.set_icon(icon)
 
+INSTAGRAM_LINK = "https://www.instagram.com"
+TWITTER_LINK = "https://www.twitter.com/Fisherman_Tales"
+
 clock = pygame.time.Clock()
 
 class Screen:
@@ -78,6 +81,16 @@ class MenuScreen(Screen):
         self.chainsRect.centerx = WIDTH//2
         self.chainsRect.top = HEIGHT//2 - 50
 
+        self.instagram = load_image("img/instagram.png")
+        self.instagramRect = self.instagram.get_rect()
+        self.instagramRect.centerx = WIDTH - 60
+        self.instagramRect.centery = HEIGHT - 60
+
+        self.xLogo = load_image("img/x.png")
+        self.xLogoRect = self.xLogo.get_rect()
+        self.xLogoRect.centerx = WIDTH - 150
+        self.xLogoRect.centery = HEIGHT - 60
+
         self.guyFall = False
         self.gX = 218
         self.gY = 360
@@ -88,6 +101,11 @@ class MenuScreen(Screen):
         self.gFRect.top = self.gY
 
     def mouseButtonDown(self):
+        mousePos = pygame.mouse.get_pos()
+        if mousePos[0] > self.instagramRect.left and mousePos[0] < self.instagramRect.right and mousePos[1] > self.instagramRect.top and mousePos[1] < self.instagramRect.bottom:
+            webbrowser.open(INSTAGRAM_LINK)
+        if mousePos[0] > self.xLogoRect.left and mousePos[0] < self.xLogoRect.right and mousePos[1] > self.xLogoRect.top and mousePos[1] < self.xLogoRect.bottom:
+            webbrowser.open(TWITTER_LINK)
         self.startButton.click()
         self.optionsButton.click()
 
@@ -114,6 +132,8 @@ class MenuScreen(Screen):
         self.startButton.update()
         self.optionsButton.update()
         screenS.blit(self.chains, self.chainsRect)
+        screenS.blit(self.instagram, self.instagramRect)
+        screenS.blit(self.xLogo, self.xLogoRect)
         if self.guyFall:
             self.easterEgg()
 
@@ -257,8 +277,12 @@ class Fish:
             self.rectR = self.imageR.get_rect()
             self.rectR.center = [self.x, self.y]
 
-            if self.rect.right > abs(currentScreen.screenPos[0]) and self.rect.left < WIDTH + abs(currentScreen.screenPos[0]) and self.rect.bottom > abs(currentScreen.screenPos[1]) and self.rect.top < HEIGHT + abs(currentScreen.screenPos[1]):
-                currentScreen.gameScreenS.blit(self.imageR, self.rectR)
+            # if self.rect.right > abs(currentScreen.screenPos[0]) and self.rect.left < WIDTH + abs(currentScreen.screenPos[0]) and self.rect.bottom > abs(currentScreen.screenPos[1]) and self.rect.top < HEIGHT + abs(currentScreen.screenPos[1]):
+            # print(self.rect.left, WIDTH + abs(currentScreen.screenPos[0]))
+            if self.rectR.right > abs(currentScreen.screenPos[0]) and self.rectR.left < WIDTH + abs(currentScreen.screenPos[0]):
+                if self.rectR.bottom > abs(currentScreen.screenPos[1]) and self.rectR.top < HEIGHT + abs(currentScreen.screenPos[1]):
+                    currentScreen.gameScreenS.blit(self.imageR, self.rectR)
+                    currentScreen.fishShowingCount += 1
             if self.rect.right < 0 or self.rect.left > currentScreen.endOfMap:
                 currentScreen.fishes.remove(self)
                 currentScreen.totalFishAmount -= 1
@@ -492,7 +516,7 @@ class Boat:
                         print(currentScreen.fishInventoryDict)
                         print(currentScreen.fishes[self.caughtFishIndex].name)
                         currentScreen.fishInventoryDict[currentScreen.fishes[self.caughtFishIndex].name] += 1
-                        currentScreen.totalFishAmount += 1
+                        currentScreen.totalFishAmount -= 1
                         print(currentScreen.fishInventoryDict, currentScreen.totalFishAmount)
                         currentScreen.fishes.pop(self.caughtFishIndex)
                         self.caughtFishIndex = -1
@@ -592,6 +616,7 @@ class GameScreen(Screen):
         # print(self.fishAmount)
 
         self.fishes = []
+        self.fishShowingCount = 0
 
         for i in range(self.fishAmount):
             self.totalFishAmount += 1
@@ -712,7 +737,7 @@ class GameScreen(Screen):
                     self.totalFishAmount -= 1
                     # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
         
-        if self.totalFishAmount < self.fishAmount and self.boat.caughtFish:
+        if self.totalFishAmount < self.fishAmount and not self.boat.caughtFish:
             self.totalFishAmount += 1
             self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
 
@@ -810,16 +835,7 @@ class GameScreen(Screen):
                 self.gameScreenS.blit(background[0], background[1])
                 # print("BLITTING BACKGROUND", i)
 
-        waterTextureRect = self.waterTexture.get_rect()
-        for line in range(0, self.endOfMap // waterTextureRect.w):
-            for column in range(0, self.waterRect.h // waterTextureRect.h + 1):
-                waterTextureRect.left = line * waterTextureRect.w
-                waterTextureRect.top = column * waterTextureRect.h
-                if waterTextureRect.left > -self.screenPos[0] - waterTextureRect.w and waterTextureRect.right < -self.screenPos[0] + WIDTH + waterTextureRect.w:
-                    if self.waterRect.top + waterTextureRect.top > -self.screenPos[1] - waterTextureRect.h and self.waterRect.top + waterTextureRect.top < -self.screenPos[1] + HEIGHT:
-                        # if waterTextureRect.top > -self.screenPos[1]:
-                        print(self.waterRect.top + waterTextureRect.top, -self.screenPos[1])
-                        self.water.blit(self.waterTexture, waterTextureRect)
+
 
         self.gameScreenS.blit(self.water, self.waterRect)
         self.gameScreenS.blit(self.harbor, self.harborRect)
@@ -886,8 +902,10 @@ class GameScreen(Screen):
 
         # screenS.blit(self.block, self.blockRect)
 
+        self.fishShowingCount = 0
         for fish in self.fishes:
             fish.update()
+        print(self.fishShowingCount, self.totalFishAmount)
 
         if self.isFishing and self.silonTextOpacity > 5:
             self.gameScreenS.blit(self.silonText, self.silonTextRect)
