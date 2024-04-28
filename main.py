@@ -737,7 +737,7 @@ class GameScreen(Screen):
                     self.totalFishAmount -= 1
                     # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
         
-        if self.totalFishAmount < self.fishAmount and not self.boat.caughtFish:
+        if self.totalFishAmount < self.fishAmount and not self.boat.caughtFish and self.fishCollideIndex == -1:
             self.totalFishAmount += 1
             self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
 
