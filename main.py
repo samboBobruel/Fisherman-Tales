@@ -2,10 +2,12 @@ import pygame, random, math, os, json, numpy, webbrowser
 
 pygame.init()
 
+pygame.event.set_allowed([pygame.QUIT, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.KEYDOWN, pygame.KEYUP])
+
 def load_image(filename, resolutionScale = 2):
     rawImg = pygame.image.load(filename).convert_alpha()
     brighten = 0
-    rawImg.fill((brighten, brighten, brighten), special_flags=pygame.BLEND_RGB_ADD) 
+    # rawImg.fill((brighten, brighten, brighten), special_flags=pygame.BLEND_RGB_ADD) 
     img = pygame.transform.scale(rawImg, [rawImg.get_width() * resolutionScale, rawImg.get_height() * resolutionScale])
     return img
 
@@ -35,8 +37,11 @@ screenY = 0
 WIDTH, HEIGHT = 480*resolutionScale, 270*resolutionScale
 icon = pygame.image.load("img/icon.png")
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT),0,256,0,0)
+screen = pygame.display.set_mode((WIDTH, HEIGHT),pygame.DOUBLEBUF,256,0,0)
+screenBuffer = pygame.Surface((WIDTH, HEIGHT))
+screen.set_alpha(0)
 screenS = pygame.Surface((WIDTH + screenX, HEIGHT))
+screen.set_alpha(0)
 pygame.display.set_caption("Fisherman Tales", "Fisherman Tales")
 pygame.display.set_icon(icon)
 
@@ -535,6 +540,7 @@ class GameScreen(Screen):
         self.boat = Boat()
 
         self.gameScreenS = pygame.Surface((WIDTH, HEIGHT))
+        self.gameScreenS.set_alpha(0)
         self.gsPos = [0,0]
 
         self.boatSave = json.load(open("boatSave.json"))
@@ -675,6 +681,8 @@ class GameScreen(Screen):
         self.capacityText = self.font.render(f'Capacity: {self.capacity}/{self.maxCapacity}', False, [0,0,0])
         self.capacityRect = self.capacityText.get_rect()
         self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 30]
+
+        print(clock.get_fps())
 
         # self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
         # self.background.fill((100,150,100))
@@ -905,7 +913,7 @@ class GameScreen(Screen):
         self.fishShowingCount = 0
         for fish in self.fishes:
             fish.update()
-        print(self.fishShowingCount, self.totalFishAmount)
+        # print(self.fishShowingCount, self.totalFishAmount)
 
         if self.isFishing and self.silonTextOpacity > 5:
             self.gameScreenS.blit(self.silonText, self.silonTextRect)
