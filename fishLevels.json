@@ -1,8 +1,8 @@
 {
     "blue_Fish": [0.4, 5],
-    "red_Fish": [1, 7],
+    "red_Fish": [1, 12],
     "green_Fish": [3, 8],
     "aqua_Fish": [9, 15],
     "silver_Fish": [10, 16],
-    "purple_Fish": [14, 19]
+    "purple_Fish": [13, 19]
 }

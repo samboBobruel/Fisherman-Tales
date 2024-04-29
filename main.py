@@ -357,7 +357,7 @@ class Boat:
         self.baitY = 0
 
         # 200px = 1m
-        self.silonMax = 15 + 0.5
+        self.silonMax = 15.5 + 0.5
         self.currentSilon = 0
 
         self.maxDiff = 4
@@ -407,7 +407,7 @@ class Boat:
         else:
             currentScreen.outOfSilon = False
 
-        depth = int(((self.defaultBaitPos[1] + self.baitY)/100-2.7)*100)/100
+        depth = int(((self.defaultBaitPos[1] + self.baitY)/100-2.7)*10)/10
         if depth < 0:
             depth = 0
         self.depthText = currentScreen.font.render(f'{depth}m', False, (255,255,255))
