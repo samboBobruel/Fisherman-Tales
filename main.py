@@ -1,4 +1,4 @@
-import pygame, random, math, os, json, numpy, webbrowser
+import pygame, random, math, os, json, numpy, webbrowser, threading
 
 pygame.init()
 
@@ -168,7 +168,7 @@ class Fish:
         self.image = pygame.transform.scale_by(self.image, self.scale)
         self.name = self.name.removesuffix(".png")
         self.levelRange = fishLevels[self.name]
-        self.levelRange = [self.levelRange[0] * 200 + waterY, self.levelRange[1] * 200 + waterY]
+        self.levelRange = [self.levelRange[0] * 100 + waterY, self.levelRange[1] * 100 + waterY]
         
         self.rect = self.image.get_rect()
         self.hitBox = pygame.Surface((10*self.scale,10*self.scale))
@@ -289,8 +289,12 @@ class Fish:
                     currentScreen.gameScreenS.blit(self.imageR, self.rectR)
                     currentScreen.fishShowingCount += 1
             if self.rect.right < 0 or self.rect.left > currentScreen.endOfMap:
-                currentScreen.fishes.remove(self)
-                currentScreen.totalFishAmount -= 1
+                if not currentScreen.boat.caughtFish:
+                    currentScreen.fishes.remove(self)
+                    currentScreen.totalFishAmount -= 1
+                    print("NOT CAUGHT FISH, FISH REMOVED")
+                else:
+                    print("TRIED TO REMOVE FISH, FISH CAUGHT")
             if self.showFishLevels:
                 pygame.draw.aaline(currentScreen.gameScreenS, [255,0,0], [0, self.levelRange[0]], [2000, self.levelRange[0]])
                 pygame.draw.aaline(currentScreen.gameScreenS, [0,255,0], [0, self.levelRange[1]], [2000, self.levelRange[1]])
@@ -353,7 +357,7 @@ class Boat:
         self.baitY = 0
 
         # 200px = 1m
-        self.silonMax = 5 + 0.5
+        self.silonMax = 15 + 0.5
         self.currentSilon = 0
 
         self.maxDiff = 4
@@ -682,7 +686,7 @@ class GameScreen(Screen):
         self.capacityRect = self.capacityText.get_rect()
         self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 30]
 
-        print(clock.get_fps())
+        # print(clock.get_fps())
 
         # self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
         # self.background.fill((100,150,100))
@@ -914,7 +918,7 @@ class GameScreen(Screen):
         self.fishShowingCount = 0
         for fish in self.fishes:
             fish.update()
-        # print(self.fishShowingCount, self.totalFishAmount)
+        print(self.fishShowingCount, self.totalFishAmount)
 
         if self.isFishing and self.silonTextOpacity > 5:
             self.gameScreenS.blit(self.silonText, self.silonTextRect)
@@ -1024,7 +1028,7 @@ class FishInventory:
         self.iRect = self.inventory.get_rect()
         self.iRect.center = (WIDTH//2, HEIGHT//2)
 
-        self.container = pygame.Surface((self.width - self.gapfromScreen, self.height * 1.2))
+        self.container = pygame.Surface((self.width - self.gapfromScreen, self.height * 1.4))
         self.container.fill((50,50,50))
         self.cRect = self.container.get_rect()
         self.cRect.topleft = (self.gapfromScreen//2, self.gapfromScreen//2)
@@ -1066,8 +1070,9 @@ class FishInventory:
             self.cRect.topleft = (self.cRect.left, self.cRect.top)
         # print(self.cRect)
 
+
         if len(self.items) == 0:
-            for i, fishName in enumerate(currentScreen.originalFishNames):
+            for i, fishName in enumerate(self.fishPrices.keys()):
                 fishImage = load_image(f'img/{currentScreen.region}/fish/{fishName}.png')
                 self.items.append(InventoryItem(self.cRect.w, self.itemHeight, i*self.itemHeight, fishImage, fishName))
         
