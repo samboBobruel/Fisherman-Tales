@@ -246,7 +246,6 @@ class Fish:
 
     def update(self):
         global currentScreen
-        print("UPDATING")
         if not self.caught:
             if not self.scared:
                 if self.x < self.turnPos and self.direction < 0:
@@ -544,8 +543,8 @@ class GameScreen(Screen):
     def __init__(self):
         self.boat = Boat()
 
-        self.fishThread = threading.Thread(target=self.updateFish, daemon = True)
-        self.fishThreadStarted = False
+        # self.fishThread = threading.Thread(target=self.updateFish)
+        # self.fishThreadStarted = False
 
         self.gameScreenS = pygame.Surface((WIDTH, HEIGHT))
         self.gameScreenS.set_alpha(0)
@@ -680,13 +679,14 @@ class GameScreen(Screen):
     def updateFish(self):
         for fish in self.fishes:
             fish.update()
+        # print("Updated fishes!")
 
     def update(self):
         # print(self.totalFishAmount)
 
+        print(clock.get_fps())
+
         # if not self.fishThreadStarted:
-        if not self.fishThread.is_alive:
-            self.fishThread.start()
             # self.fishThreadStarted = True
 
         # if self.fishThread.is_started:
@@ -867,6 +867,11 @@ class GameScreen(Screen):
 
 
         self.gameScreenS.blit(self.water, self.waterRect)
+
+        fishThread = threading.Thread(target=self.updateFish)
+        fishThread.start()
+        fishThread.join()
+
         self.gameScreenS.blit(self.harbor, self.harborRect)
         screenS.blit(self.shops, self.shopsRect)
         # self.gameScreenS.blit(self.text, [0,0])
@@ -932,7 +937,7 @@ class GameScreen(Screen):
         # screenS.blit(self.block, self.blockRect)
 
         self.fishShowingCount = 0
-        print(self.fishShowingCount, self.totalFishAmount)
+        # print(self.fishShowingCount, self.totalFishAmount)
 
         if self.isFishing and self.silonTextOpacity > 5:
             self.gameScreenS.blit(self.silonText, self.silonTextRect)
@@ -1205,7 +1210,7 @@ currentScreen = menuScreen
 running = True
 
 while running:
-    clock.tick(30)
+    clock.tick(50)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             if isinstance(currentScreen, GameScreen):
