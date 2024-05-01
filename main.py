@@ -681,6 +681,13 @@ class GameScreen(Screen):
             fish.update()
         # print("Updated fishes!")
 
+    def updateBoat(self):
+        if self.isFishing:
+            self.boat.update(self.isFishing, self.screenPos)
+        else:
+            self.boat.update(self.isFishing)
+
+
     def update(self):
         # print(self.totalFishAmount)
 
@@ -869,8 +876,14 @@ class GameScreen(Screen):
         self.gameScreenS.blit(self.water, self.waterRect)
 
         fishThread = threading.Thread(target=self.updateFish)
+        boatThread = threading.Thread(target=self.updateBoat)
+
         fishThread.start()
+        boatThread.start()
+
         fishThread.join()
+        boatThread.join()
+        
 
         self.gameScreenS.blit(self.harbor, self.harborRect)
         screenS.blit(self.shops, self.shopsRect)
@@ -943,11 +956,6 @@ class GameScreen(Screen):
             self.gameScreenS.blit(self.silonText, self.silonTextRect)
         else:
             self.silonTextOpacity = 0
-
-        if self.isFishing:
-            self.boat.update(self.isFishing, self.screenPos)
-        else:
-            self.boat.update(self.isFishing)
 
         # screenS.blit(self.water2, self.water2Rect)
         
