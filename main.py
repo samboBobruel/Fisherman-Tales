@@ -691,7 +691,7 @@ class GameScreen(Screen):
     def update(self):
         # print(self.totalFishAmount)
 
-        print(clock.get_fps())
+        # print(clock.get_fps())
 
         # if not self.fishThreadStarted:
             # self.fishThreadStarted = True
@@ -878,11 +878,12 @@ class GameScreen(Screen):
         fishThread = threading.Thread(target=self.updateFish)
         boatThread = threading.Thread(target=self.updateBoat)
 
-        fishThread.start()
         boatThread.start()
 
-        fishThread.join()
         boatThread.join()
+        fishThread.start()
+        if not boatThread.is_alive():
+            fishThread.join()
         
 
         self.gameScreenS.blit(self.harbor, self.harborRect)
