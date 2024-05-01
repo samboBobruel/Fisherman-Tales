@@ -246,6 +246,7 @@ class Fish:
 
     def update(self):
         global currentScreen
+        print("UPDATING")
         if not self.caught:
             if not self.scared:
                 if self.x < self.turnPos and self.direction < 0:
@@ -357,7 +358,7 @@ class Boat:
         self.baitY = 0
 
         # 200px = 1m
-        self.silonMax = 15.5 + 0.5
+        self.silonMax = 15 + 0.7
         self.currentSilon = 0
 
         self.maxDiff = 4
@@ -543,6 +544,9 @@ class GameScreen(Screen):
     def __init__(self):
         self.boat = Boat()
 
+        self.fishThread = threading.Thread(target=self.updateFish, daemon = True)
+        self.fishThreadStarted = False
+
         self.gameScreenS = pygame.Surface((WIDTH, HEIGHT))
         self.gameScreenS.set_alpha(0)
         self.gsPos = [0,0]
@@ -673,8 +677,20 @@ class GameScreen(Screen):
 
         self.scareRadius = pygame.Rect(0, 0, 200, 200)
 
+    def updateFish(self):
+        for fish in self.fishes:
+            fish.update()
+
     def update(self):
         # print(self.totalFishAmount)
+
+        # if not self.fishThreadStarted:
+        if not self.fishThread.is_alive:
+            self.fishThread.start()
+            # self.fishThreadStarted = True
+
+        # if self.fishThread.is_started:
+            # self.fishThread.join()
 
         self.currentCameraPos = [self.defaultBoatX + self.screenPos[0], 0]
 
@@ -916,8 +932,6 @@ class GameScreen(Screen):
         # screenS.blit(self.block, self.blockRect)
 
         self.fishShowingCount = 0
-        for fish in self.fishes:
-            fish.update()
         print(self.fishShowingCount, self.totalFishAmount)
 
         if self.isFishing and self.silonTextOpacity > 5:
