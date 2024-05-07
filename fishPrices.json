@@ -1,7 +1,8 @@
 {
-    "aqua_Fish": 1,
     "blue_Fish": 10,
     "red_Fish": 10,
     "green_Fish": 15,
-    "silver_Fish": 25 
+    "aqua_Fish": 25,
+    "silver_Fish": 50,
+    "purple_Fish": 100
 }
