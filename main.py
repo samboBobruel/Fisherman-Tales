@@ -158,8 +158,7 @@ class OptionsScreen(Screen):
         screenS.blit(self.text, [0,0])
 
 class Fish:
-    def __init__(self, region, fishLevels, waterY, endOfMap, fishNames):
-        # self.imageNames = [imgName for imgName in os.listdir(f'img/{region}/fish') if imgName.endswith(".png")]
+    def __init__(self, region, fishLevels, waterY, endOfMap, fishNames): 
         self.imageNames = fishNames
 
         self.name = f'{random.choice(self.imageNames)}.png'
@@ -286,8 +285,9 @@ class Fish:
             # print(self.rect.left, WIDTH + abs(currentScreen.screenPos[0]))
             if self.rectR.right > abs(currentScreen.screenPos[0]) and self.rectR.left < WIDTH + abs(currentScreen.screenPos[0]):
                 if self.rectR.bottom > abs(currentScreen.screenPos[1]) and self.rectR.top < HEIGHT + abs(currentScreen.screenPos[1]):
-                    currentScreen.gameScreenS.blit(self.imageR, self.rectR)
-                    currentScreen.fishShowingCount += 1
+                    if currentScreen.isFishing or self.drop:
+                        currentScreen.gameScreenS.blit(self.imageR, self.rectR)
+                        currentScreen.fishShowingCount += 1
             if self.rect.right < 0 or self.rect.left > currentScreen.endOfMap:
                 if not currentScreen.boat.caughtFish:
                     currentScreen.fishes.remove(self)
@@ -325,8 +325,8 @@ class Fish:
                     self.drop = False
                     self.caught = False
                     currentScreen.boat.caughtFishIndex = -1
-                    currentScreen.isFishing = False
                     currentScreen.gameScreenS.blit(self.image, self.rect)
+                    currentScreen.isFishing = False
                 
 
         self.hitBoxRect.centerx = self.rect.centerx + self.rect.width//2*self.direction
@@ -550,6 +550,12 @@ class GameScreen(Screen):
         self.gameScreenS.set_alpha(0)
         self.gsPos = [0,0]
 
+        self.reflectionSurf = pygame.Surface((WIDTH + 4, HEIGHT//2))
+        self.reflectionSurfRect = self.reflectionSurf.get_rect()
+        self.reflectionSurfRect.topleft = [0,0]
+
+        self.reflectionSurf.fill((46,166,204))
+
         self.boatSave = json.load(open("boatSave.json"))
 
         self.screenPos = self.boatSave["screenPos"]
@@ -577,6 +583,12 @@ class GameScreen(Screen):
         for i in range(len(self.backgrounds)):
             self.backgrounds[i][1].topleft = [i*WIDTH, 0]
             self.endOfMap += i*WIDTH
+
+        self.backgroundReflections = []
+        for bg in self.backgrounds:
+            bgReflection = pygame.transform.flip(bg[0], False, True)
+            bgReflection.set_alpha(80)
+            self.backgroundReflections.append(bgReflection)
 
         self.endOfMap *= 2
 
@@ -677,7 +689,8 @@ class GameScreen(Screen):
         self.scareRadius = pygame.Rect(0, 0, 200, 200)
 
     def updateFish(self):
-        for fish in self.fishes:
+        threads = []
+        for i, fish in enumerate(self.fishes):
             fish.update()
         # print("Updated fishes!")
 
@@ -691,7 +704,7 @@ class GameScreen(Screen):
     def update(self):
         # print(self.totalFishAmount)
 
-        # print(clock.get_fps())
+        print(clock.get_fps())
 
         # if not self.fishThreadStarted:
             # self.fishThreadStarted = True
@@ -871,17 +884,37 @@ class GameScreen(Screen):
                 self.gameScreenS.blit(background[0], background[1])
                 # print("BLITTING BACKGROUND", i)
 
+        self.reflectionSurfRect.topleft = [-self.screenPos[0]-2,self.waterRect.y + self.boat.staticRect.h/6]
 
-
+        if not self.isFishing:
+            for i, bgR in enumerate(self.backgroundReflections):
+                self.water.blit(bgR, [WIDTH*i,-160])
         self.gameScreenS.blit(self.water, self.waterRect)
 
         fishThread = threading.Thread(target=self.updateFish)
         boatThread = threading.Thread(target=self.updateBoat)
 
         boatThread.start()
-
-        boatThread.join()
         fishThread.start()
+        
+        boatThread.join()
+        if not self.isFishing:
+            # bgReflection = pygame.transform.flip(self.backgrounds[0][0], False, True)
+            # bgReflection.set_alpha(80)
+
+            boatReflection = pygame.transform.flip(self.boat.imageR, False, True)
+            boatReflection.set_alpha(80)
+            self.reflectionSurf.fill((46,166,204))
+            bgShowing = 0
+            for i, bgR in enumerate(self.backgroundReflections):
+                if i*WIDTH - WIDTH <= -self.screenPos[0] or i*WIDTH >= -self.screenPos[0]:
+                    bgShowing += 1
+                    self.reflectionSurf.blit(bgR, [WIDTH*i + self.screenPos[0] + 2, -185])
+            # print(bgShowing)
+            # self.reflectionSurf.blit(bgReflection, [self.backgrounds[0][1][0] + self.screenPos[0] + 2, -185])
+            self.reflectionSurf.blit(boatReflection, [self.boat.rect.left + self.screenPos[0],-15])
+            self.gameScreenS.blit(self.reflectionSurf, self.reflectionSurfRect)
+
         if not boatThread.is_alive():
             fishThread.join()
         
