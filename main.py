@@ -363,9 +363,9 @@ class Boat:
         self.silonMax = 15 + 0.7
         self.currentSilon = 0
 
-        self.maxDiff = 4
+        self.maxDiff = 3
         self.directionY = -1
-        self.waveSpeed = 0.2
+        self.waveSpeed = 0.05
         self.angle = 0
 
         self.speed = 1
@@ -397,10 +397,10 @@ class Boat:
         self.dockedIn = False
 
     def update(self, isFishing, baitSpeed = 0):
-        self.defaultY = currentScreen.waterRect.top
+        self.defaultY = currentScreen.waterRect.top + 200
 
         self.x += -self.speed * currentScreen.directionX
-        self.y = currentScreen.waterRect.top - 20
+        self.y = currentScreen.waterRect.top + self.rect.height//2 - self.rect.height//5
         self.defaultBaitPos[0] += -self.speed * currentScreen.directionX
 
         self.currentSilon = math.dist(self.defaultBaitPos, self.endingPoint)/100
@@ -450,7 +450,8 @@ class Boat:
                 self.baitY += 1
                 # print(self.baitY)
                 # if not self.baitRect.colliderect(currentScreen.waterRect):
-                self.baitX = self.baitX + math.cos(math.radians(self.baitY*1.2))*5
+                print((self.baitY + 100)/100)
+                self.baitX = self.baitX + math.cos(math.radians(self.baitY*0.8))*3
                 # print("MOVING", self.baitY-5 < currentScreen.waterRect.top)
                 # print(self.baitX, self.baitY)
                 # self.baitX = math.sin(math.radians(self.baitY*4))
@@ -496,7 +497,7 @@ class Boat:
             pygame.draw.aaline(currentScreen.gameScreenS, [255,255,255], self.defaultBaitPos, self.endingPoint)
             pygame.draw.aaline(currentScreen.gameScreenS, [255,255,255], [self.defaultBaitPos[0] + 1, self.defaultBaitPos[1]], [self.endingPoint[0] + 1, self.endingPoint[1]])
 
-        self.prutRect.bottomleft = (self.staticRect.right - 40, self.rect.top + 100)
+        self.prutRect.bottomleft = (self.staticRect.right - 40, self.rect.top)
 
         currentScreen.gameScreenS.blit(self.prut, self.prutRect)
         currentScreen.gameScreenS.blit(self.imageR, self.rect)
@@ -618,7 +619,7 @@ class GameScreen(Screen):
         self.harborFont = pygame.font.Font(None, 70)
 
         self.harborTextOpacity = 0
-        self.harborText = self.harborFont.render("Harbor", False, (0,0,0)).convert_alpha()
+        self.harborText = self.harborFont.render("Harbor", False, (255,255,255)).convert_alpha()
         self.harborText.set_alpha(self.harborTextOpacity)
         self.harborTextRect = self.harborText.get_rect()
         self.harborTextRect.center = [WIDTH//2, 150]
@@ -716,7 +717,7 @@ class GameScreen(Screen):
     def update(self):
         # print(self.totalFishAmount)
 
-        print(clock.get_fps())
+        # print(clock.get_fps())
 
         # if not self.fishThreadStarted:
             # self.fishThreadStarted = True
@@ -840,8 +841,8 @@ class GameScreen(Screen):
                 else:
                     self.screenPos[0] -= 3
             if not self.boat.dockedIn:
-                if not equalPlusMinus(-self.screenPos[1] + HEIGHT//2, self.boat.staticRect.centery, 3) and self.directionY == 0:
-                    if -self.screenPos[1] + HEIGHT//2 > self.boat.staticRect.centery:
+                if not equalPlusMinus(-self.screenPos[1] + HEIGHT//2, self.boat.staticRect.centery - 138, 3) and self.directionY == 0:
+                    if -self.screenPos[1] + HEIGHT//2 > self.boat.staticRect.centery - 138:
                         self.screenPos[1] += 3
                     else:
                         self.screenPos[1] -= 3
@@ -926,7 +927,7 @@ class GameScreen(Screen):
                     self.reflectionSurf.blit(bgR, [WIDTH*i + self.screenPos[0] + 2, -185])
             # print(bgShowing)
             # self.reflectionSurf.blit(bgReflection, [self.backgrounds[0][1][0] + self.screenPos[0] + 2, -185])
-            self.reflectionSurf.blit(boatReflection, [self.boat.rect.left + self.screenPos[0],-15])
+            self.reflectionSurf.blit(boatReflection, [self.boat.rect.left + self.screenPos[0],-self.boat.rect.height//2 + self.boat.rect.height//5])
             self.gameScreenS.blit(self.reflectionSurf, self.reflectionSurfRect)
 
         if not boatThread.is_alive():
