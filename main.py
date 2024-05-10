@@ -283,11 +283,6 @@ class Fish:
 
             # if self.rect.right > abs(currentScreen.screenPos[0]) and self.rect.left < WIDTH + abs(currentScreen.screenPos[0]) and self.rect.bottom > abs(currentScreen.screenPos[1]) and self.rect.top < HEIGHT + abs(currentScreen.screenPos[1]):
             # print(self.rect.left, WIDTH + abs(currentScreen.screenPos[0]))
-            if self.rectR.right > abs(currentScreen.screenPos[0]) and self.rectR.left < WIDTH + abs(currentScreen.screenPos[0]):
-                if self.rectR.bottom > abs(currentScreen.screenPos[1]) and self.rectR.top < HEIGHT + abs(currentScreen.screenPos[1]):
-                    if currentScreen.isFishing or self.drop:
-                        currentScreen.gameScreenS.blit(self.imageR, self.rectR)
-                        currentScreen.fishShowingCount += 1
             if self.rect.right < 0 or self.rect.left > currentScreen.endOfMap:
                 if not currentScreen.boat.caughtFish:
                     currentScreen.fishes.remove(self)
@@ -295,6 +290,19 @@ class Fish:
                     print("NOT CAUGHT FISH, FISH REMOVED")
                 else:
                     print("TRIED TO REMOVE FISH, FISH CAUGHT")
+                
+
+        self.hitBoxRect.centerx = self.rect.centerx + self.rect.width//2*self.direction
+        self.hitBoxRect.centery = self.rect.centery
+        # pygame.draw.rect(screenS, [255,0,0], self.hitBoxRect)
+
+    def draw(self):
+        if not self.caught:
+            if self.rectR.right > abs(currentScreen.screenPos[0]) and self.rectR.left < WIDTH + abs(currentScreen.screenPos[0]):
+                if self.rectR.bottom > abs(currentScreen.screenPos[1]) and self.rectR.top < HEIGHT + abs(currentScreen.screenPos[1]):
+                    if currentScreen.isFishing or self.drop:
+                        currentScreen.gameScreenS.blit(self.imageR, self.rectR)
+                        currentScreen.fishShowingCount += 1
             if self.showFishLevels:
                 pygame.draw.aaline(currentScreen.gameScreenS, [255,0,0], [0, self.levelRange[0]], [2000, self.levelRange[0]])
                 pygame.draw.aaline(currentScreen.gameScreenS, [0,255,0], [0, self.levelRange[1]], [2000, self.levelRange[1]])
@@ -303,7 +311,6 @@ class Fish:
             if self.showFishRect:
                 pygame.draw.rect(currentScreen.gameScreenS, [255,0,0], self.rect, 2)
         else:
-            # self.caught = True
             if not self.drop:
                 # print("BOA", random.randint(100,10000))
                 self.x = self.baitPos[0]
@@ -327,11 +334,7 @@ class Fish:
                     currentScreen.boat.caughtFishIndex = -1
                     currentScreen.gameScreenS.blit(self.image, self.rect)
                     currentScreen.isFishing = False
-                
 
-        self.hitBoxRect.centerx = self.rect.centerx + self.rect.width//2*self.direction
-        self.hitBoxRect.centery = self.rect.centery
-        # pygame.draw.rect(screenS, [255,0,0], self.hitBoxRect)
 
 class Boat:
     def __init__(self):
@@ -689,9 +692,18 @@ class GameScreen(Screen):
         self.scareRadius = pygame.Rect(0, 0, 200, 200)
 
     def updateFish(self):
-        threads = []
         for i, fish in enumerate(self.fishes):
             fish.update()
+
+    def drawFish(self):
+        for fish in self.fishes:
+            if fish.rectR.right > abs(self.screenPos[0]) and fish.rectR.left < WIDTH + abs(self.screenPos[0]):
+                if fish.rectR.bottom > abs(self.screenPos[1]) and fish.rectR.top < HEIGHT + abs(self.screenPos[1]):
+                    fish.draw()
+                elif fish.caught:
+                    fish.draw()
+            elif fish.caught:
+                fish.draw()
         # print("Updated fishes!")
 
     def updateBoat(self):
@@ -891,13 +903,15 @@ class GameScreen(Screen):
                 self.water.blit(bgR, [WIDTH*i,-160])
         self.gameScreenS.blit(self.water, self.waterRect)
 
-        fishThread = threading.Thread(target=self.updateFish)
+        fishUpdateThread = threading.Thread(target=self.updateFish)
+        fishDrawThread = threading.Thread(target=self.drawFish)
         boatThread = threading.Thread(target=self.updateBoat)
 
         boatThread.start()
-        fishThread.start()
+        fishUpdateThread.start()
         
         boatThread.join()
+        fishDrawThread.start()
         if not self.isFishing:
             # bgReflection = pygame.transform.flip(self.backgrounds[0][0], False, True)
             # bgReflection.set_alpha(80)
@@ -916,7 +930,9 @@ class GameScreen(Screen):
             self.gameScreenS.blit(self.reflectionSurf, self.reflectionSurfRect)
 
         if not boatThread.is_alive():
-            fishThread.join()
+            fishUpdateThread.join()
+            if not fishUpdateThread.is_alive():
+                fishDrawThread.join()
         
 
         self.gameScreenS.blit(self.harbor, self.harborRect)
