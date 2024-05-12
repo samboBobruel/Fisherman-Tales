@@ -385,6 +385,11 @@ class Boat:
         self.defaultBaitPos = [0,0]
         self.endingPoint = self.baitRect.center
 
+        self.chargingBar = pygame.Rect(self.staticRect.left, self.staticRect.top, 100, 20)
+
+        self.charging = False
+        self.minThrowPower = -2
+        self.throwPower = self.minThrowPower
         self.throwingBait = False
         self.gotoPos = [0,0]
         self.fromPos = [0,0]
@@ -442,16 +447,27 @@ class Boat:
             # self.defaultBaitPos = [self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY]
             self.defaultBaitPos = list(self.prutRect.topright)
 
+        if self.charging:
+            self.throwPower += 0.05
+            if self.throwPower >= 2:
+                self.throwPower = 2
+                self.charging = False
+                self.throwingBait = True
+                currentScreen.isFishing = True
+        elif not self.throwingBait:
+            self.throwPower = self.minThrowPower
+
+        print("TP", self.throwPower)
 
         if self.throwingBait:
             # if self.baitY < 100:
             # print(self.prutRect.top - 5, currentScreen.waterRect.top)
             if self.baitRect.top - 5 < currentScreen.waterRect.top:
-                self.baitY += 1
+                # throwPower = 0
+                self.baitY += 3 - self.throwPower
                 # print(self.baitY)
                 # if not self.baitRect.colliderect(currentScreen.waterRect):
-                print((self.baitY + 100)/100)
-                self.baitX = self.baitX + math.cos(math.radians(self.baitY*0.8))*3
+                self.baitX = self.baitX + math.cos(math.radians(self.baitY*0.70))*(6 + self.throwPower)
                 # print("MOVING", self.baitY-5 < currentScreen.waterRect.top)
                 # print(self.baitX, self.baitY)
                 # self.baitX = math.sin(math.radians(self.baitY*4))
@@ -501,6 +517,10 @@ class Boat:
 
         currentScreen.gameScreenS.blit(self.prut, self.prutRect)
         currentScreen.gameScreenS.blit(self.imageR, self.rect)
+        self.chargingBar.left = self.prutRect.left
+        self.chargingBar.top = self.prutRect.top - 30
+        self.chargingBar.width = 100 * ((self.throwPower+2) / 4)
+        pygame.draw.rect(currentScreen.gameScreenS, [0,255,0], self.chargingBar)
         if isFishing and not self.caughtFish:
             currentScreen.gameScreenS.blit(self.depthText, self.depthTextRect)
         if not self.baitRect.colliderect(currentScreen.waterRect) and currentScreen.isFishing and not self.throwingBait and not self.caughtFish and not self.rollBack:
@@ -1050,9 +1070,10 @@ class GameScreen(Screen):
         if key == pygame.K_SPACE and (self.isFishing or self.boat.staticRect.centerx != WIDTH//2):
             if not self.fishInventoryShow:
                 if not self.isFishing:
-                    self.boat.throwingBait = True
-                    self.isFishing = True
-                elif not self.boat.throwingBait:
+                    self.boat.charging = True
+                    # self.boat.throwingBait = True
+                    # self.isFishing = True
+                elif not self.boat.throwingBait and not self.boat.charging:
                     if not self.boat.rollBack:
                         self.boat.rollBack = True
                     else:
@@ -1089,6 +1110,12 @@ class GameScreen(Screen):
                 self.upPressed = False
             else:
                 self.fishInventory.moveUp = False
+        
+        if key == pygame.K_SPACE:
+            if self.boat.charging:
+                self.boat.charging = False
+                self.boat.throwingBait = True
+                self.isFishing = True
 
     def mouseButtonDown(self):
         if self.fishInventoryShow:
