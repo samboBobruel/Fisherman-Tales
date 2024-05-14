@@ -1,4 +1,6 @@
-import pygame, random, math, os, json, numpy, webbrowser, threading
+import pygame, random, math, os, json, numpy, webbrowser, threading, gc, os, cProfile
+
+gc.set_threshold(500)
 
 pygame.init()
 
@@ -286,6 +288,7 @@ class Fish:
             if self.rect.right < 0 or self.rect.left > currentScreen.endOfMap:
                 if not currentScreen.boat.caughtFish:
                     currentScreen.fishes.remove(self)
+                    print(gc.collect())
                     currentScreen.totalFishAmount -= 1
                     print("NOT CAUGHT FISH, FISH REMOVED")
                 else:
@@ -298,8 +301,8 @@ class Fish:
 
     def draw(self):
         if not self.caught:
-            if self.rectR.right > abs(currentScreen.screenPos[0]) and self.rectR.left < WIDTH + abs(currentScreen.screenPos[0]):
-                if self.rectR.bottom > abs(currentScreen.screenPos[1]) and self.rectR.top < HEIGHT + abs(currentScreen.screenPos[1]):
+            if self.rect.right > abs(currentScreen.screenPos[0]) and self.rect.left < WIDTH + abs(currentScreen.screenPos[0]):
+                if self.rect.bottom > abs(currentScreen.screenPos[1]) and self.rect.top < HEIGHT + abs(currentScreen.screenPos[1]):
                     if currentScreen.isFishing or self.drop:
                         currentScreen.gameScreenS.blit(self.imageR, self.rectR)
                         currentScreen.fishShowingCount += 1
@@ -457,7 +460,7 @@ class Boat:
         elif not self.throwingBait:
             self.throwPower = self.minThrowPower
 
-        print("TP", self.throwPower)
+        # print("TP", self.throwPower)
 
         if self.throwingBait:
             # if self.baitY < 100:
@@ -520,7 +523,8 @@ class Boat:
         self.chargingBar.left = self.prutRect.left
         self.chargingBar.top = self.prutRect.top - 30
         self.chargingBar.width = 100 * ((self.throwPower+2) / 4)
-        pygame.draw.rect(currentScreen.gameScreenS, [0,255,0], self.chargingBar)
+        if not currentScreen.isFishing:
+            pygame.draw.rect(currentScreen.gameScreenS, [0,255,0], self.chargingBar)
         if isFishing and not self.caughtFish:
             currentScreen.gameScreenS.blit(self.depthText, self.depthTextRect)
         if not self.baitRect.colliderect(currentScreen.waterRect) and currentScreen.isFishing and not self.throwingBait and not self.caughtFish and not self.rollBack:
@@ -715,11 +719,12 @@ class GameScreen(Screen):
     def updateFish(self):
         for i, fish in enumerate(self.fishes):
             fish.update()
+            # print(gc.collect())
 
     def drawFish(self):
         for fish in self.fishes:
-            if fish.rectR.right > abs(self.screenPos[0]) and fish.rectR.left < WIDTH + abs(self.screenPos[0]):
-                if fish.rectR.bottom > abs(self.screenPos[1]) and fish.rectR.top < HEIGHT + abs(self.screenPos[1]):
+            if fish.rect.right > abs(self.screenPos[0]) and fish.rect.left < WIDTH + abs(self.screenPos[0]):
+                if fish.rect.bottom > abs(self.screenPos[1]) and fish.rect.top < HEIGHT + abs(self.screenPos[1]):
                     fish.draw()
                 elif fish.caught:
                     fish.draw()
@@ -816,6 +821,7 @@ class GameScreen(Screen):
             for fish in self.fishes:
                 if fish.rect.right < 0 or fish.rect.left > self.endOfMap:
                     self.fishes.remove(fish)
+                    print(gc.collect())
                     self.totalFishAmount -= 1
                     # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
         
@@ -930,6 +936,8 @@ class GameScreen(Screen):
 
         boatThread.start()
         fishUpdateThread.start()
+
+        # print(len(threading.enumerate()))
         
         boatThread.join()
         fishDrawThread.start()
@@ -1340,8 +1348,10 @@ while running:
         color = currentScreen.shops.get_at((0,400))
     else:
         color = (255,255,255)
+
     screenS.fill(color)
 
+    # print(cProfile.run('currentScreen.update()'))
     currentScreen.update()
 
     screen.blit(screenS, currentScreen.screenPos)
