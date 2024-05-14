@@ -368,7 +368,7 @@ class Boat:
 
         self.maxDiff = 3
         self.directionY = -1
-        self.waveSpeed = 0.05
+        self.waveSpeed = 0.1
         self.angle = 0
 
         self.speed = 1
@@ -631,7 +631,7 @@ class GameScreen(Screen):
         self.water2 = self.water.copy()
         self.water2Rect = self.waterRect.copy()
         self.water2.fill((46,166,204,50))
-        self.font = pygame.font.Font(None, 36)
+        self.font = pygame.font.Font("font/pixelFont.ttf", 36)
         self.text = self.font.render("GAME", False, [255,255,255])
 
         self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
