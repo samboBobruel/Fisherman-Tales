@@ -631,7 +631,7 @@ class GameScreen(Screen):
         self.water2 = self.water.copy()
         self.water2Rect = self.waterRect.copy()
         self.water2.fill((46,166,204,50))
-        self.font = pygame.font.Font("font/pixelFont.ttf", 36)
+        self.font = pygame.font.Font("font/pixelFont.ttf", 20)
         self.text = self.font.render("GAME", False, [255,255,255])
 
         self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
@@ -707,12 +707,14 @@ class GameScreen(Screen):
         self.fishInventory = FishInventory()
         self.fishInventoryShow = False
 
-        self.moneyText = self.font.render(f'Money: {self.money}', False, [0,0,0])
-        self.moneyRect = self.moneyText.get_rect()
+        self.moneyBar = load_image("img/moneyBar.png")
+        self.moneyText = self.font.render(f'{self.money}¢', False, [227,188,154])
+        self.moneyRect = self.moneyBar.get_rect()
         self.moneyRect.topleft = [10,10]
 
-        self.capacityText = self.font.render(f'Capacity: {self.capacity}/{self.maxCapacity}', False, [0,0,0])
-        self.capacityRect = self.capacityText.get_rect()
+        self.capacityBar = load_image("img/moneyBar.png")
+        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,154])
+        self.capacityRect = self.capacityBar.get_rect()
 
         self.scareRadius = pygame.Rect(0, 0, 200, 200)
 
@@ -752,13 +754,18 @@ class GameScreen(Screen):
 
         self.currentCameraPos = [self.defaultBoatX + self.screenPos[0], 0]
 
-        self.moneyText = self.font.render(f'Money: {self.money}', False, [0,0,0])
-        self.moneyRect = self.moneyText.get_rect()
+        moneyTextCont = self.money
+        if self.money > 1000000:
+            moneyTextCont = str(int(self.money/1000000*10)/10) + "M"
+        elif self.money > 1000:
+            moneyTextCont = str(int(self.money/1000*10)/10) + "K"
+        self.moneyText = self.font.render(f'{moneyTextCont}¢', False, [227,188,154])
+        self.moneyRect = self.moneyBar.get_rect()
         self.moneyRect.topleft = [-self.screenPos[0] + 10, -self.screenPos[1] + 10]
 
-        self.capacityText = self.font.render(f'Capacity: {self.capacity}/{self.maxCapacity}', False, [0,0,0])
-        self.capacityRect = self.capacityText.get_rect()
-        self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 30]
+        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,154])
+        self.capacityRect = self.capacityBar.get_rect()
+        self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 45]
 
         # print(clock.get_fps())
 
@@ -968,8 +975,19 @@ class GameScreen(Screen):
         screenS.blit(self.shops, self.shopsRect)
         # self.gameScreenS.blit(self.text, [0,0])
         if not (self.transition or self.showingShops):
-            self.gameScreenS.blit(self.moneyText, self.moneyRect)
-        self.gameScreenS.blit(self.capacityText, self.capacityRect)
+            self.gameScreenS.blit(self.moneyBar, self.moneyRect)
+            moneyTextPos = self.moneyRect.center
+            moneyTextRect = self.moneyText.get_rect()
+            moneyTextRect.center = moneyTextPos
+            moneyTextRect.left += 2
+            self.gameScreenS.blit(self.moneyText, moneyTextRect)
+
+        self.capacityRect.top += 5
+        self.gameScreenS.blit(self.capacityBar, self.capacityRect)
+        capacityTextPos = self.capacityRect.center
+        capacityTextRect = self.capacityText.get_rect()
+        capacityTextRect.center = capacityTextPos
+        self.gameScreenS.blit(self.capacityText, capacityTextRect)
 
         self.harborText.set_alpha(self.harborTextOpacity)
         if self.harborTextOpacity > 0:
