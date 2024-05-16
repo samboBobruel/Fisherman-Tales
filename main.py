@@ -162,11 +162,13 @@ class OptionsScreen(Screen):
 class Fish:
     def __init__(self, region, fishLevels, waterY, endOfMap, fishNames): 
         self.imageNames = fishNames
+        self.fishWeights = json.load(open("fishWeight.json"))
 
         self.name = f'{random.choice(self.imageNames)}.png'
         self.image = load_image(f'img/{region}/fish/{self.name}')
         self.scale = random.uniform(0.8, 1.2)
         self.image = pygame.transform.scale_by(self.image, self.scale)
+        self.weight = self.scale * self.fishWeights[self.name.removesuffix(".png")]
         self.name = self.name.removesuffix(".png")
         self.levelRange = fishLevels[self.name]
         self.levelRange = [self.levelRange[0] * 100 + waterY, self.levelRange[1] * 100 + waterY]
