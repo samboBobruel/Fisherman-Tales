@@ -159,6 +159,27 @@ class OptionsScreen(Screen):
         screenS.blit(self.background, [0,0])
         screenS.blit(self.text, [0,0])
 
+class WaterSplash:
+    def __init__(self, pos):
+        self.imageNames = [imgName for imgName in os.listdir(f'img/waterSplash') if imgName.endswith(".png")]
+        self.images = [load_image(f'img/waterSplash/{img}') for img in self.imageNames]
+
+        self.count = 0
+        self.index = 0
+        self.finished = False
+    
+    def update(self):
+        self.count += 1
+
+        if self.count == 5:
+            self.count = 0
+            if self.index < len(self.images) - 1:
+                self.index += 1
+            else:
+                self.finished = True
+
+        currentScreen.gameScreenS.blit(self.images[self.index], [100, 100])
+
 class Fish:
     def __init__(self, region, fishLevels, waterY, endOfMap, fishNames): 
         self.imageNames = fishNames
@@ -357,6 +378,8 @@ class Boat:
         # self.bait.fill((0,255,0))
         self.baitRect = self.bait.get_rect()
 
+        self.ws = WaterSplash(0)
+
 
         self.x, self.y = json.load(open("boatSave.json"))["boatPos"]
         self.yM = 0
@@ -408,6 +431,12 @@ class Boat:
 
     def update(self, isFishing, baitSpeed = 0):
         self.defaultY = currentScreen.waterRect.top + 200
+
+        if not self.ws == None:
+            if not self.ws.finished:
+                self.ws.update()
+            else:
+                self.ws = None
 
         self.x += -self.speed * currentScreen.directionX
         self.y = currentScreen.waterRect.top + self.rect.height//2 - self.rect.height//5
