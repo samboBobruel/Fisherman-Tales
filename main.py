@@ -708,12 +708,12 @@ class GameScreen(Screen):
         self.fishInventoryShow = False
 
         self.moneyBar = load_image("img/moneyBar.png")
-        self.moneyText = self.font.render(f'{self.money}¢', False, [227,188,154])
+        self.moneyText = self.font.render(f'{self.money}¢', False, [227,188,15])
         self.moneyRect = self.moneyBar.get_rect()
         self.moneyRect.topleft = [10,10]
 
         self.capacityBar = load_image("img/moneyBar.png")
-        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,154])
+        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
         self.capacityRect = self.capacityBar.get_rect()
 
         self.scareRadius = pygame.Rect(0, 0, 200, 200)
@@ -759,11 +759,11 @@ class GameScreen(Screen):
             moneyTextCont = str(int(self.money/1000000*10)/10) + "M"
         elif self.money > 1000:
             moneyTextCont = str(int(self.money/1000*10)/10) + "K"
-        self.moneyText = self.font.render(f'{moneyTextCont}¢', False, [227,188,154])
+        self.moneyText = self.font.render(f'{moneyTextCont}¢', False, [227,188,15])
         self.moneyRect = self.moneyBar.get_rect()
         self.moneyRect.topleft = [-self.screenPos[0] + 10, -self.screenPos[1] + 10]
 
-        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,154])
+        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
         self.capacityRect = self.capacityBar.get_rect()
         self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 45]
 
