@@ -160,9 +160,15 @@ class OptionsScreen(Screen):
         screenS.blit(self.text, [0,0])
 
 class WaterSplash:
-    def __init__(self, pos = [100,100]):
+    def __init__(self, pos = [100,100], sizeX = -1, sizeY = -1):
         self.imageNames = [imgName for imgName in os.listdir(f'img/waterSplash') if imgName.endswith(".png")]
         self.images = [load_image(f'img/waterSplash/{img}') for img in self.imageNames]
+
+        if sizeX != -1 and sizeY != -1:
+            for img in self.images:
+                _img = img
+                img = pygame.transform.scale(img, [sizeX, img.get_rect().h * sizeY])
+                self.images[self.images.index(_img)] = img
 
         self.count = 0
         self.index = 0
@@ -232,6 +238,8 @@ class Fish:
 
         self.turnPos = self.x + random.randint(50,300)*self.direction
 
+        self.ws = None
+
     def scare(self, caughtFishRect: pygame.Rect):
         if not self.scared:
             self.currentSpeed = self.escapeSpeed
@@ -271,6 +279,7 @@ class Fish:
 
     def update(self):
         global currentScreen
+
         if not self.caught:
             if not self.scared:
                 if self.x < self.turnPos and self.direction < 0:
@@ -306,6 +315,16 @@ class Fish:
             self.imageR = pygame.transform.rotate(self.image, self.angle)
             self.rectR = self.imageR.get_rect()
             self.rectR.center = [self.x, self.y]
+
+            if not self.caught and not self.drop and self.rectR.top + 5 < currentScreen.waterRect.top:
+                if self.ws == None:
+                    self.ws = WaterSplash(self.rectR.center, self.rectR.width * 2.5, self.scale)
+
+            if not self.ws == None:
+                if not self.ws.finished:
+                    self.ws.update()
+                else:
+                    self.ws = None
 
             # if self.rect.right > abs(currentScreen.screenPos[0]) and self.rect.left < WIDTH + abs(currentScreen.screenPos[0]) and self.rect.bottom > abs(currentScreen.screenPos[1]) and self.rect.top < HEIGHT + abs(currentScreen.screenPos[1]):
             # print(self.rect.left, WIDTH + abs(currentScreen.screenPos[0]))
@@ -433,12 +452,6 @@ class Boat:
     def update(self, isFishing, baitSpeed = 0):
         self.defaultY = currentScreen.waterRect.top + 200
 
-        if not self.ws == None:
-            if not self.ws.finished:
-                self.ws.update()
-            else:
-                self.ws = None
-
         self.x += -self.speed * currentScreen.directionX
         self.y = currentScreen.waterRect.top + self.rect.height//2 - self.rect.height//5
         self.defaultBaitPos[0] += -self.speed * currentScreen.directionX
@@ -499,7 +512,7 @@ class Boat:
             # print(self.prutRect.top - 5, currentScreen.waterRect.top)
             if self.baitRect.top - 5 < currentScreen.waterRect.top:
                 # throwPower = 0
-                print(self.ws)
+                # print(self.ws)
                 self.baitY += 3 - self.throwPower
                 # print(self.baitY)
                 # if not self.baitRect.colliderect(currentScreen.waterRect):
@@ -511,8 +524,10 @@ class Boat:
                 self.baitRect.center = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
             else:
                 self.throwingBait = False
+            
+            if self.baitRect.top + 10 >= currentScreen.waterRect.top:
                 if self.ws == None:
-                    self.ws = WaterSplash(self.baitRect.center)
+                    self.ws = WaterSplash([self.baitRect.centerx, self.baitRect.centery+self.baitRect.h])
         elif isFishing and not self.rollBack and not self.caughtFish:
             if equalPlusMinus(self.currentSilon, self.silonMax, 0.1):
                 if -currentScreen.directionX > 0:
@@ -568,6 +583,13 @@ class Boat:
             self.gotoPos = self.defaultBaitPos.copy()
         if not self.caughtFish:
             currentScreen.gameScreenS.blit(self.bait, self.baitRect)
+
+        if not self.ws == None:
+            if not self.ws.finished:
+                self.ws.update()
+            else:
+                self.ws = None
+
         if self.caughtFish or self.rollBack:
             if not equalPlusMinus(self.baitRect.center[1], self.gotoPos[1] , 4):
                 self.fromPos = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
@@ -1213,7 +1235,7 @@ class FishInventory:
         self.items = []
 
     def click(self, pos):
-        cursorRect = pygame.Rect(pos[0], pos[1]-self.iRect.top-self.cRect.top+self.itemHeight, 1, 1)
+        cursorRect = pygame.Rect(pos[0], pos[1]-self.iRect.top-self.cRect.top, 1, 1)
         collide = cursorRect.collidelist([item.backgroundRect for item in self.items])
         if collide != -1:
             name = self.items[collide].rawName.removesuffix(".png")
