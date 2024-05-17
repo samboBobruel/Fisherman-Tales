@@ -160,13 +160,14 @@ class OptionsScreen(Screen):
         screenS.blit(self.text, [0,0])
 
 class WaterSplash:
-    def __init__(self, pos):
+    def __init__(self, pos = [100,100]):
         self.imageNames = [imgName for imgName in os.listdir(f'img/waterSplash') if imgName.endswith(".png")]
         self.images = [load_image(f'img/waterSplash/{img}') for img in self.imageNames]
 
         self.count = 0
         self.index = 0
         self.finished = False
+        self.pos = [pos[0] - self.images[0].get_rect().w//2, pos[1] - self.images[0].get_rect().h]
     
     def update(self):
         self.count += 1
@@ -178,7 +179,7 @@ class WaterSplash:
             else:
                 self.finished = True
 
-        currentScreen.gameScreenS.blit(self.images[self.index], [100, 100])
+        currentScreen.gameScreenS.blit(self.images[self.index], list(self.pos))
 
 class Fish:
     def __init__(self, region, fishLevels, waterY, endOfMap, fishNames): 
@@ -378,7 +379,7 @@ class Boat:
         # self.bait.fill((0,255,0))
         self.baitRect = self.bait.get_rect()
 
-        self.ws = WaterSplash(0)
+        self.ws = WaterSplash()
 
 
         self.x, self.y = json.load(open("boatSave.json"))["boatPos"]
@@ -498,6 +499,7 @@ class Boat:
             # print(self.prutRect.top - 5, currentScreen.waterRect.top)
             if self.baitRect.top - 5 < currentScreen.waterRect.top:
                 # throwPower = 0
+                print(self.ws)
                 self.baitY += 3 - self.throwPower
                 # print(self.baitY)
                 # if not self.baitRect.colliderect(currentScreen.waterRect):
@@ -509,6 +511,8 @@ class Boat:
                 self.baitRect.center = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
             else:
                 self.throwingBait = False
+                if self.ws == None:
+                    self.ws = WaterSplash(self.baitRect.center)
         elif isFishing and not self.rollBack and not self.caughtFish:
             if equalPlusMinus(self.currentSilon, self.silonMax, 0.1):
                 if -currentScreen.directionX > 0:
