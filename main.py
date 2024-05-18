@@ -1204,6 +1204,10 @@ class GameScreen(Screen):
         if self.fishInventoryShow:
             self.fishInventory.click(pygame.mouse.get_pos())
 
+    def mouseScoll(self, e):
+        if self.fishInventoryShow:
+            self.fishInventory.scroll(e)
+
 class FishInventory:
     def __init__(self):
         global currentScreen
@@ -1234,6 +1238,9 @@ class FishInventory:
 
         self.items = []
 
+        self.scrolling = False
+        self.oldPos = []
+
     def click(self, pos):
         cursorRect = pygame.Rect(pos[0], pos[1]-self.iRect.top-self.cRect.top, 1, 1)
         collide = cursorRect.collidelist([item.backgroundRect for item in self.items])
@@ -1243,7 +1250,16 @@ class FishInventory:
                 currentScreen.fishInventoryDict[name] -= 1
                 currentScreen.money += self.fishPrices[name]
                 currentScreen.capacity -= 1
-
+    
+    def scroll(self, direction):
+        if direction == 1:
+            self.moveUp = True
+            self.moveDown = False
+        else:
+            self.moveDown = True
+            self.moveUp = False
+        self.oldPos = self.cRect.topleft
+        self.scrolling = True
 
     def update(self):
         # print(self.cy, random.randint(0,1000))
@@ -1258,6 +1274,11 @@ class FishInventory:
             self.cRect.topleft = (self.cRect.left, self.cRect.top)
         # print(self.cRect)
 
+        if self.scrolling:
+            if abs(self.oldPos[1] - self.cRect.topleft[1]) > 40:
+                self.scrolling = False
+                self.moveDown = False
+                self.moveUp = False
 
         if len(self.items) == 0:
             for i, fishName in enumerate(self.fishPrices.keys()):
@@ -1415,6 +1436,10 @@ while running:
 
         if event.type == pygame.KEYUP:
             currentScreen.keyUp(event.key)
+        
+        if event.type == pygame.MOUSEWHEEL:
+            if isinstance(currentScreen, GameScreen):
+                currentScreen.fishInventory.scroll(event.y)
 
     # print((WIDTH - currentScreen.screenPos[0] + 2, HEIGHT - currentScreen.screenPos[1] + 2))
     screenS = pygame.Surface((WIDTH - currentScreen.screenPos[0] + 2, HEIGHT - currentScreen.screenPos[1] + 2))
