@@ -989,7 +989,7 @@ class GameScreen(Screen):
 
         self.reflectionSurfRect.topleft = [-self.screenPos[0]-2,self.waterRect.y + self.boat.staticRect.h/6]
 
-        if not self.isFishing:
+        if not self.isFishing or (self.boat.throwingBait):
             for i, bgR in enumerate(self.backgroundReflections):
                 self.water.blit(bgR, [WIDTH*i,-160])
         self.gameScreenS.blit(self.water, self.waterRect)
@@ -1005,7 +1005,7 @@ class GameScreen(Screen):
         
         boatThread.join()
         fishDrawThread.start()
-        if not self.isFishing:
+        if not self.isFishing or (self.boat.throwingBait):
             # bgReflection = pygame.transform.flip(self.backgrounds[0][0], False, True)
             # bgReflection.set_alpha(80)
 
