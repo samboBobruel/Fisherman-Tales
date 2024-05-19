@@ -398,8 +398,8 @@ class Boat:
         # self.bait.fill((0,255,0))
         self.baitRect = self.bait.get_rect()
 
-        self.ws = WaterSplash()
-
+        self.ws = None
+        self.wsFinished = False
 
         self.x, self.y = json.load(open("boatSave.json"))["boatPos"]
         self.yM = 0
@@ -589,6 +589,7 @@ class Boat:
                 self.ws.update()
             else:
                 self.ws = None
+                self.wsFinished = True
 
         if self.caughtFish or self.rollBack:
             if not equalPlusMinus(self.baitRect.center[1], self.gotoPos[1] , 4):
@@ -668,12 +669,6 @@ class GameScreen(Screen):
         for i in range(len(self.backgrounds)):
             self.backgrounds[i][1].topleft = [i*WIDTH, 0]
             self.endOfMap += i*WIDTH
-
-        self.backgroundReflections = []
-        for bg in self.backgrounds:
-            bgReflection = pygame.transform.flip(bg[0], False, True)
-            bgReflection.set_alpha(80)
-            self.backgroundReflections.append(bgReflection)
 
         self.endOfMap *= 2
 
@@ -774,6 +769,16 @@ class GameScreen(Screen):
         self.capacityRect = self.capacityBar.get_rect()
 
         self.scareRadius = pygame.Rect(0, 0, 200, 200)
+
+        self.setReflectionAlpha = 80
+        self.reflectionSurfAlpha = 255
+        self.reflectionAlpha = 80
+
+        self.backgroundReflections = []
+        for bg in self.backgrounds:
+            bgReflection = pygame.transform.flip(bg[0], False, True)
+            bgReflection.set_alpha(self.setReflectionAlpha)
+            self.backgroundReflections.append(bgReflection)
 
     def updateFish(self):
         for i, fish in enumerate(self.fishes):
@@ -989,10 +994,17 @@ class GameScreen(Screen):
 
         self.reflectionSurfRect.topleft = [-self.screenPos[0]-2,self.waterRect.y + self.boat.staticRect.h/6]
 
-        if not self.isFishing:
-            for i, bgR in enumerate(self.backgroundReflections):
-                self.water.blit(bgR, [WIDTH*i,-160])
+        if not self.isFishing and self.boat.wsFinished:
+            self.boat.wsFinished = False
+
         self.gameScreenS.blit(self.water, self.waterRect)
+
+        waterReflectionSurf = self.water.copy()
+        for i, bgR in enumerate(self.backgroundReflections):
+            bgR.set_alpha(self.setReflectionAlpha)
+            waterReflectionSurf.blit(bgR, [WIDTH*i,-160])
+            waterReflectionSurf.set_alpha(self.reflectionSurfAlpha)
+        self.gameScreenS.blit(waterReflectionSurf, self.waterRect)
 
         fishUpdateThread = threading.Thread(target=self.updateFish)
         fishDrawThread = threading.Thread(target=self.drawFish)
@@ -1005,27 +1017,42 @@ class GameScreen(Screen):
         
         boatThread.join()
         fishDrawThread.start()
-        if not self.isFishing:
-            # bgReflection = pygame.transform.flip(self.backgrounds[0][0], False, True)
-            # bgReflection.set_alpha(80)
-
-            boatReflection = pygame.transform.flip(self.boat.imageR, False, True)
-            boatReflection.set_alpha(80)
-            self.reflectionSurf.fill((46,166,204))
-            bgShowing = 0
-            for i, bgR in enumerate(self.backgroundReflections):
-                if i*WIDTH - WIDTH <= -self.screenPos[0] or i*WIDTH >= -self.screenPos[0]:
-                    bgShowing += 1
-                    self.reflectionSurf.blit(bgR, [WIDTH*i + self.screenPos[0] + 2, -185])
-            # print(bgShowing)
-            # self.reflectionSurf.blit(bgReflection, [self.backgrounds[0][1][0] + self.screenPos[0] + 2, -185])
-            self.reflectionSurf.blit(boatReflection, [self.boat.rect.left + self.screenPos[0],-self.boat.rect.height//2 + self.boat.rect.height//5])
-            self.gameScreenS.blit(self.reflectionSurf, self.reflectionSurfRect)
 
         if not boatThread.is_alive():
             fishUpdateThread.join()
             if not fishUpdateThread.is_alive():
                 fishDrawThread.join()
+
+        self.backgroundReflections = []
+        for bg in self.backgrounds:
+            bgReflection = pygame.transform.flip(bg[0], False, True)
+            bgReflection.set_alpha(self.setReflectionAlpha)
+            self.backgroundReflections.append(bgReflection)
+
+        if not self.isFishing or not self.boat.wsFinished:
+            if self.reflectionSurfAlpha < 255:
+                self.reflectionSurfAlpha += 5
+        else:
+            if self.reflectionSurfAlpha > 0:
+                self.reflectionSurfAlpha -= 5
+        print(self.reflectionSurfAlpha)
+            # bgReflection = pygame.transform.flip(self.backgrounds[0][0], False, True)
+            # bgReflection.set_alpha(80)
+
+        boatReflection = pygame.transform.flip(self.boat.imageR, False, True)
+
+        boatReflection.set_alpha(self.setReflectionAlpha)
+        self.reflectionSurf.fill((46,166,204))
+        bgShowing = 0
+        for i, bgR in enumerate(self.backgroundReflections):
+            if i*WIDTH - WIDTH <= -self.screenPos[0] or i*WIDTH >= -self.screenPos[0]:
+                bgShowing += 1
+                self.reflectionSurf.blit(bgR, [WIDTH*i + self.screenPos[0] + 2, -185])
+        # print(bgShowing)
+        # self.reflectionSurf.blit(bgReflection, [self.backgrounds[0][1][0] + self.screenPos[0] + 2, -185])
+        self.reflectionSurf.blit(boatReflection, [self.boat.rect.left + self.screenPos[0],-self.boat.rect.height//2 + self.boat.rect.height//5])
+        self.reflectionSurf.set_alpha(self.reflectionSurfAlpha)
+        self.gameScreenS.blit(self.reflectionSurf, self.reflectionSurfRect)
         
 
         self.gameScreenS.blit(self.harbor, self.harborRect)
