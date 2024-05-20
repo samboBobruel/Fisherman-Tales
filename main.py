@@ -833,7 +833,7 @@ class GameScreen(Screen):
 
         anyFishDropping = True if (True in [fish.drop for fish in self.fishes]) else False
 
-        if self.isFishing:
+        if self.isFishing and not self.boat.throwingBait:
             if not anyFishDropping:
                 if not self.boat.caughtFish:
                     self.fishCollideIndex = self.boat.baitRect.collidelist([fish.hitBoxRect for fish in self.fishes])
