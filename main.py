@@ -210,7 +210,7 @@ class Fish:
         self.showFishHitBox = False
         self.showFishRect = False
 
-        self.x, self.y = random.randint(WIDTH//2, endOfMap), random.randint(self.levelRange[0], self.levelRange[1])
+        self.x, self.y = random.randint(WIDTH//2, endOfMap), random.randint(int(self.levelRange[0]), int(self.levelRange[1]))
 
         self.rect.center = [self.x, self.y]
 
