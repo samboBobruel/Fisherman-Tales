@@ -240,6 +240,10 @@ class Fish:
 
         self.ws = None
 
+        self.startTicks = pygame.time.get_ticks()
+
+        self.bubbleInterval = random.randint(10,25)
+
     def scare(self, caughtFishRect: pygame.Rect):
         if not self.scared:
             self.currentSpeed = self.escapeSpeed
@@ -279,6 +283,10 @@ class Fish:
 
     def update(self):
         global currentScreen
+
+        if (pygame.time.get_ticks() - self.startTicks)/1000 > self.bubbleInterval:
+            currentScreen.bubbles.append(Bubble(self.hitBoxRect.centerx, self.hitBoxRect.centery))
+            self.startTicks = pygame.time.get_ticks()
 
         if not self.caught:
             if not self.scared:
@@ -624,6 +632,56 @@ class Boat:
                 elif self.rollBack:
                     self.rollBack = False
 
+class Bubble(Screen):
+    def __init__(self, x, y):
+        self.imageNames = [imgName for imgName in os.listdir(f'img/bubblePop') if imgName.endswith(".png")]
+        self.images = [load_image(f'img/bubblePop/{img}') for img in self.imageNames]
+
+        self.surf = load_image("img/bubble.png")
+        self.surf = pygame.transform.scale_by(self.surf, random.uniform(1, 1.5))
+        self.rect = self.surf.get_rect()
+        self.x = x
+        self.y = y
+
+        self.startY = y
+        
+        self.rect.center = self.x, self.y
+
+        self.speedX = random.uniform(-0.4, 0.4)
+        self.speedY = -2
+
+        self.popDistance = 600
+        self.popStart = False
+        self.count = 0
+        self.index = 0
+
+    def update(self):
+        self.rect.center = self.x, self.y
+
+        self.x += self.speedX
+        self.y += self.speedY
+
+        if self.rect.top - self.rect.h//4 < currentScreen.waterRect.top or self.y < self.startY-self.popDistance:
+            self.popStart = True
+            self.speedY = -0.2
+            self.speedX = 0
+
+        if self.popStart:
+            self.count += 1
+
+            if self.count == 5:
+                self.count = 0
+                if self.index < len(self.images) - 1:
+                    self.index += 1
+                else:
+                    currentScreen.bubbles.remove(self)
+        
+
+        if not self.popStart:
+            currentScreen.gameScreenS.blit(self.surf, self.rect)
+        else:
+            currentScreen.gameScreenS.blit(self.images[self.index], self.rect)
+
 class GameScreen(Screen):
     def __init__(self):
         self.boat = Boat()
@@ -775,6 +833,8 @@ class GameScreen(Screen):
 
         self.scareRadius = pygame.Rect(0, 0, 200, 200)
 
+        self.bubbles = []
+
     def updateFish(self):
         for i, fish in enumerate(self.fishes):
             fish.update()
@@ -790,6 +850,10 @@ class GameScreen(Screen):
             elif fish.caught:
                 fish.draw()
         # print("Updated fishes!")
+
+    def updateBubbles(self):
+        for bubble in self.bubbles:
+            bubble.update()
 
     def updateBoat(self):
         if self.isFishing:
@@ -997,9 +1061,11 @@ class GameScreen(Screen):
         fishUpdateThread = threading.Thread(target=self.updateFish)
         fishDrawThread = threading.Thread(target=self.drawFish)
         boatThread = threading.Thread(target=self.updateBoat)
+        bubbleThread = threading.Thread(target=self.updateBubbles, daemon=True)
 
         boatThread.start()
         fishUpdateThread.start()
+        bubbleThread.start()
 
         # print(len(threading.enumerate()))
         
