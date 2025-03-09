@@ -1220,8 +1220,7 @@ class GameScreen(Screen):
             if not self.fishInventoryShow:
                 if not self.isFishing:
                     self.boat.charging = True
-                    # self.boat.throwingBait = True
-                    # self.isFishing = True
+
                 elif not self.boat.throwingBait and not self.boat.charging:
                     if not self.boat.rollBack:
                         self.boat.rollBack = True
