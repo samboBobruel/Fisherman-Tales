@@ -1,4 +1,5 @@
 import pygame, random, math, os, json, webbrowser, threading, gc, os, cProfile
+from collections.abc import Callable
 
 gc.set_threshold(500)
 
@@ -32,20 +33,24 @@ def genFishNamesForRarity(fishNames, rarities):
             final.append(fishName)
     return final
 
-resolutionScale = 2
-screenX = 0
-screenY = 0
+def screenSetup():
+    global screen, screenBuffer, screenS, WIDTH, HEIGHT, screenX, screenY
+    resolutionScale = 2
+    screenX = 0
+    screenY = 0
 
-WIDTH, HEIGHT = 480*resolutionScale, 270*resolutionScale
-icon = pygame.image.load("img/icon.png")
+    WIDTH, HEIGHT = 480*resolutionScale, 270*resolutionScale
+    icon = pygame.image.load("img/icon.png")
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT),pygame.DOUBLEBUF,256,0,0)
-screenBuffer = pygame.Surface((WIDTH, HEIGHT))
-screen.set_alpha(0)
-screenS = pygame.Surface((WIDTH + screenX, HEIGHT))
-screen.set_alpha(0)
-pygame.display.set_caption("Fisherman Tales", "Fisherman Tales")
-pygame.display.set_icon(icon)
+    screen = pygame.display.set_mode((WIDTH, HEIGHT),pygame.DOUBLEBUF,256,0,0)
+    screenBuffer = pygame.Surface((WIDTH, HEIGHT))
+    screen.set_alpha(0)
+    screenS = pygame.Surface((WIDTH + screenX, HEIGHT))
+    screen.set_alpha(0)
+    pygame.display.set_caption("Fisherman Tales", "Fisherman Tales")
+    pygame.display.set_icon(icon)
+
+screenSetup()
 
 INSTAGRAM_LINK = "https://www.instagram.com"
 TWITTER_LINK = "https://www.twitter.com/Fisherman_Tales"
@@ -75,56 +80,120 @@ class MenuScreen(Screen):
     def __init__(self):
         self.screenPos = [0,0]
 
-        print("MENU SCREEN INITIALIZED")
-        self.background = load_image("img/menu_bg.png")
-        self.backgroundFunny = load_image("img/menu_bg_guy_fall.png")
-        self.guyFalling = load_image("img/guy_falling.png")
-        self.guyFallingR = self.guyFalling
-        self.currentBackground = self.background
-        self.startButton = StartButton("img/startButton.png", "img/startButton_pressed.png", [WIDTH//2, HEIGHT//2 - 74])
-        self.optionsButton = OptionsButton("img/optionsButton.png", "img/optionsButton_pressed.png", [WIDTH//2, HEIGHT//2 + 61])
-        self.chains = load_image("img/buttonChains.png")
+        self.initImg() #Initialize images
+
+        self.initCalcParam() #Initialize calculation parameters for images
+
+    def initImg(self):
+        ###################
+        # Initializing all images in MenuScreen class
+        ###################
+
+        self.background = load_image("img/menu_bg.png") #Menu Background
+        self.backgroundFunny = load_image("img/menu_bg_guy_fall.png") #Easter Egg Menu Background 1
+        self.guyFalling = load_image("img/guy_falling.png") # 2
+        self.guyFallingR = self.guyFalling # 3
+        self.currentBackground = self.background #Variable to render correct background when switching to easter egg background
+
+        self.startButton = Button("img/startButton.png", "img/startButton_pressed.png", self.startButtonFunction, [WIDTH//2, HEIGHT//2 - 74]) #Start button in menu
+        self.optionsButton = Button("img/optionsButton.png", "img/optionsButton_pressed.png", self.optionsButtonFunction, [WIDTH//2, HEIGHT//2 + 61]) #Options button in menu
+        self.chains = load_image("img/buttonChains.png") #Chains connecting the two buttons
+
+        self.instagram = Button("img/instagram.png", "img/instagram.png", self.redirectToInstagram, [WIDTH-60, HEIGHT-60]) #Instagram buttom for fisherman tales instagram site
+        self.xLogo = Button("img/x.png", "img/x.png", self.redirectToX, [WIDTH-150, HEIGHT-60]) #X button for fisherman tales x site
+
+    def initCalcParam(self):
+        ###################
+        # Initializing all needed calculation parameters for MenuScreen class images
+        ###################
+
+        ###################
+        #Positioning chains 1
         self.chainsRect = self.chains.get_rect()
         self.chainsRect.centerx = WIDTH//2
         self.chainsRect.top = HEIGHT//2 - 50
+        ###################
 
-        self.instagram = load_image("img/instagram.png")
-        self.instagramRect = self.instagram.get_rect()
-        self.instagramRect.centerx = WIDTH - 60
-        self.instagramRect.centery = HEIGHT - 60
-
-        self.xLogo = load_image("img/x.png")
-        self.xLogoRect = self.xLogo.get_rect()
-        self.xLogoRect.centerx = WIDTH - 150
-        self.xLogoRect.centery = HEIGHT - 60
-
+        ###################
+        #Easter egg parameters
         self.guyFall = False
         self.gX = 218
         self.gY = 360
         self.angle = 0
-
         self.gFRect = self.guyFalling.get_rect()
         self.gFRect.left = self.gX
         self.gFRect.top = self.gY
+        ###################
+
+    def startButtonFunction(self):
+        ###################
+        # Changing screen to game screen after clicking startButton
+        ###################
+
+        global currentScreen
+        currentScreen = gameScreen
+
+    def optionsButtonFunction(self):
+        ###################
+        # Changing screen to options screen after clicking optionsButton
+        ###################
+
+        global currentScreen
+        currentScreen = optionsScreen
+
+    def redirectToInstagram(self):
+        ###################
+        # Redirecting user to instagram page
+        ###################
+
+        global INSTAGRAM_LINK
+        webbrowser.open(INSTAGRAM_LINK)
+
+    def redirectToX(self):
+        ###################
+        # Redirecting user to X page
+        ###################
+
+        global TWITTER_LINK
+        webbrowser.open(TWITTER_LINK)
 
     def mouseButtonDown(self):
-        mousePos = pygame.mouse.get_pos()
-        if mousePos[0] > self.instagramRect.left and mousePos[0] < self.instagramRect.right and mousePos[1] > self.instagramRect.top and mousePos[1] < self.instagramRect.bottom:
-            webbrowser.open(INSTAGRAM_LINK)
-        if mousePos[0] > self.xLogoRect.left and mousePos[0] < self.xLogoRect.right and mousePos[1] > self.xLogoRect.top and mousePos[1] < self.xLogoRect.bottom:
-            webbrowser.open(TWITTER_LINK)
-        self.startButton.click()
-        self.optionsButton.click()
+        ###################
+        # Handler for mouse click event
+        ###################
+
+        self.startButton.press()
+        self.optionsButton.press()
+        self.instagram.press()
+        self.xLogo.press()
 
     def mouseButtonUp(self):
+        ###################
+        # Handler for mouse release event
+        ###################
+
         self.startButton.click()
         self.optionsButton.click()
+        self.instagram.click()
+        self.xLogo.click()
+
+        self.easterEggClick()
+
+    def easterEggClick(self):
+        ###################
+        # Trigger for easter egg
+        ###################
+
         mousePos = pygame.mouse.get_pos()
         if mousePos[0] > self.gX and mousePos[0] < self.gX + self.gFRect.width and mousePos[1] > self.gY and mousePos[1] < self.gY + self.gFRect.height:
             self.currentBackground = self.backgroundFunny
             self.guyFall = True
 
     def easterEgg(self):
+        ###################
+        # Easter egg handler
+        ###################
+
         self.gX += 1
         self.gY += 2
         self.angle -= 1
@@ -132,22 +201,25 @@ class MenuScreen(Screen):
         screenS.blit(self.guyFallingR, [self.gX, self.gY])
         if self.gY > HEIGHT:
             self.guyFall = False
-        print("FALLIIING", random.randint(10, 1000))
 
     def update(self):
+        ###################
+        # Updating all objects in Menu Screen
+        ###################
+
         screenS.blit(self.currentBackground, [0,0])
         self.startButton.update()
         self.optionsButton.update()
+        self.instagram.update()
+        self.xLogo.update()
         screenS.blit(self.chains, self.chainsRect)
-        screenS.blit(self.instagram, self.instagramRect)
-        screenS.blit(self.xLogo, self.xLogoRect)
         if self.guyFall:
             self.easterEgg()
 
-
+#WORK IN PROGRESS --- WAITING FOR GRAPHICS AND DESIGN
 class OptionsScreen(Screen):
     def __init__(self):
-        print("OPTIONS SCREEN INITIALIZED")
+
         self.background = pygame.Surface([WIDTH, HEIGHT])
         self.background.fill((100,100,100))
         self.font = pygame.font.Font(None, 36)
@@ -158,6 +230,660 @@ class OptionsScreen(Screen):
     def update(self):
         screenS.blit(self.background, [0,0])
         screenS.blit(self.text, [0,0])
+
+class GameScreen(Screen):
+    def __init__(self):
+        ###################
+        # Initializing GameScreen
+        ###################
+
+        self.boat = Boat()
+
+        self.region = "tatry"
+
+        self.endOfMap = 0
+
+        self.initData()
+
+        self.screenPos = self.boatSave["screenPos"]
+
+        self.initImg()
+
+        self.initText()
+
+        self.endOfMap *= 2
+
+        self.gsPos = [0,0]
+
+        self.reflectionSurfRect = self.reflectionSurf.get_rect()
+        self.reflectionSurfRect.topleft = [0,0]
+
+
+        self.cameraOutOfBounds = False
+
+
+        self.maxCapacity = 10
+        self.capacity = 0
+
+        self.shopsRect = self.shops.get_rect()
+        self.shopsRect.topright = [0,0]
+        self.transition = 0
+        self.showingShops = False
+
+        self.waterRect = self.water.get_rect()
+        self.waterRect.bottomleft = [0, HEIGHT]
+
+        self.harborRect = self.harbor.get_rect()
+        self.harborRect.centery = self.waterRect.top - 20
+        self.harborRect.left = 0
+
+        self.harborTextOpacity = 0
+        self.harborText.set_alpha(self.harborTextOpacity)
+        self.harborTextRect = self.harborText.get_rect()
+        self.harborTextRect.center = [WIDTH//2, 150]
+
+        self.fishShowingCount = 0
+
+        self.genFishes()
+
+
+        self.silonTextRect = self.silonText.get_rect()
+        self.silonTextRect.center = [WIDTH//2 + self.screenPos[0], HEIGHT//2 + self.screenPos[1]]
+        self.silonTextOpacity = 0
+        self.fade = 0
+        self.outOfSilon = False
+
+        self.directionX = 0
+        self.directionY = 0
+        self.cameraSpeed = 2
+        self.defaultBoatX = self.boat.x
+
+        self.leftPressed = False
+        self.rightPressed = False
+        self.downPressed = False
+        self.upPressed = False
+        self.usePressed = False
+
+        self.correctCameraPos = [self.defaultBoatX, 0]
+        self.currentCameraPos = [self.defaultBoatX + self.boat.x, 0]
+
+        self.isFishing = False
+        self.fishCollideIndex = -1
+
+        self.fishInventory = FishInventory()
+        self.fishInventoryShow = False
+
+
+
+        self.moneyRect = self.moneyBar.get_rect()
+        self.moneyRect.topleft = [10,10]
+
+        self.capacityBar = load_image("img/moneyBar.png")
+        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
+        self.capacityRect = self.capacityBar.get_rect()
+
+        self.scareRadius = pygame.Rect(0, 0, 200, 200)
+
+        self.setReflectionAlpha = 80
+        self.reflectionSurfAlpha = 255
+        self.reflectionAlpha = 80
+        self.bgReflectionAlpha = 80
+
+        self.backgroundReflections = []
+        for bg in self.backgrounds:
+            bgReflection = pygame.transform.flip(bg[0], False, True)
+            bgReflection.set_alpha(self.setReflectionAlpha)
+            self.backgroundReflections.append(bgReflection)
+
+    def genFishes(self):
+        ###################
+        # Generating fishes based on region and level of their spawning
+        ###################
+
+        self.totalFishAmount = 0
+        self.fishAmount = self.endOfMap//100 + 5
+
+        self.fishes = []
+
+        for i in range(self.fishAmount):
+            self.totalFishAmount += 1
+            self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
+
+    def initData(self):
+        ###################
+        # Data loader
+        ###################
+
+        #Boat save file
+        self.boatSave = json.load(open("boatSave.json"))
+
+        #Currency loading from inventory save file
+        self.money = json.load(open("inventorySave.json"))["money"]
+
+        #Levels at which fishes spawn
+        levelsJson = open("fishLevels.json")
+        self.fishLevels = json.load(levelsJson)
+
+        #Data on which is calculated how rare it is to encounter a fish
+        fishRarityJson = open("fishRarity.json")
+        self.fishRarity = json.load(fishRarityJson)
+
+        #All fish names without suffix .png
+        self.originalFishNames = [imgName.removesuffix(".png") for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
+        
+        #Generating fish based on their rarity
+        self.fishNames = genFishNamesForRarity(self.originalFishNames, self.fishRarity)
+
+        #Loading inventory
+        self.fishInventoryDict = json.load(open("inventorySave.json"))["inventory"]
+        for name in self.originalFishNames:
+            if self.fishInventoryDict[name] > 0:
+                self.capacity += self.fishInventoryDict[name]
+
+    def initText(self):
+        ###################
+        # Initiliazing text
+        ###################
+
+        self.font = pygame.font.Font("font/pixelFont.ttf", 20)
+        self.text = self.font.render("GAME", False, [255,255,255])
+
+        self.harborFont = pygame.font.Font(None, 70)
+        self.harborText = self.harborFont.render("Harbor", False, (255,255,255)).convert_alpha()
+
+        self.silonText = self.harborFont.render("Out of line", False, [255,255,255])
+
+        self.moneyText = self.font.render(f'{self.money}¢', False, [227,188,15])
+
+    def initImg(self):
+        ###################
+        # Initializing images and surfaces
+        ###################
+
+        #Main game surface. When turning to shops, it's changing gsPosition.
+        self.gameScreenS = pygame.Surface((WIDTH, HEIGHT))
+        # self.gameScreenS.set_alpha(0)
+
+        #Surface used to render reflections of objects like backgrounds, boat etc.
+        self.reflectionSurf = pygame.Surface((WIDTH + 4, HEIGHT//2))
+        self.reflectionSurf.fill((46,166,204))
+
+        #Image containing shopping part of a specified region
+        self.shops = load_image(f'img/{self.region}/backgrounds/obchody.png')
+        
+        #Image cointaing fishing surface part of a specified region
+        self.background = load_image(f'img/{self.region}/backgrounds/pozadie/000.png')
+
+        #Array containing all backgrounds - useful for optimalized rendering
+        self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(2)]
+        for i in range(len(self.backgrounds)):
+            self.backgrounds[i][1].topleft = [i*WIDTH, 0]
+            self.endOfMap += i*WIDTH
+
+        #Water texture tile WORK IN PROGRESS!!!
+        self.waterTexture = load_image('img/waterTexture.png')
+
+        #Water surface
+        self.water = pygame.Surface([WIDTH + self.screenPos[0], 162], pygame.SRCALPHA)
+        self.water.fill((46,166,204))
+
+        #Harbor image
+        self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
+
+        #Background for money text
+        self.moneyBar = load_image("img/moneyBar.png")
+
+
+
+    def updateFish(self):
+        for i, fish in enumerate(self.fishes):
+            fish.update()
+            # print(gc.collect())
+
+    def drawFish(self):
+        for fish in self.fishes:
+            if fish.rect.right > abs(self.screenPos[0]) and fish.rect.left < WIDTH + abs(self.screenPos[0]):
+                if fish.rect.bottom > abs(self.screenPos[1]) and fish.rect.top < HEIGHT + abs(self.screenPos[1]):
+                    fish.draw()
+                elif fish.caught:
+                    fish.draw()
+            elif fish.caught:
+                fish.draw()
+        # print("Updated fishes!")
+
+    def updateBoat(self):
+        if self.isFishing:
+            self.boat.update(self.isFishing, self.screenPos)
+        else:
+            self.boat.update(self.isFishing)
+
+
+    def update(self):
+        # print(self.totalFishAmount)
+
+        # print(clock.get_fps())
+
+        # if not self.fishThreadStarted:
+            # self.fishThreadStarted = True
+
+        # if self.fishThread.is_started:
+            # self.fishThread.join()
+
+        self.currentCameraPos = [self.defaultBoatX + self.screenPos[0], 0]
+
+        moneyTextCont = self.money
+        if self.money > 1000000:
+            moneyTextCont = str(int(self.money/1000000*10)/10) + "M"
+        elif self.money > 1000:
+            moneyTextCont = str(int(self.money/1000*10)/10) + "K"
+        self.moneyText = self.font.render(f'{moneyTextCont}¢', False, [227,188,15])
+        self.moneyRect = self.moneyBar.get_rect()
+        self.moneyRect.topleft = [-self.screenPos[0] + 10, -self.screenPos[1] + 10]
+
+        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
+        self.capacityRect = self.capacityBar.get_rect()
+        self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 45]
+
+        # print(clock.get_fps())
+
+        # self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
+        # self.background.fill((100,150,100))
+
+        # print(self.usePressed)
+
+        anyFishDropping = True if (True in [fish.drop for fish in self.fishes]) else False
+
+        if self.isFishing:
+            if not anyFishDropping:
+                if not self.boat.caughtFish:
+                    self.fishCollideIndex = self.boat.baitRect.collidelist([fish.hitBoxRect for fish in self.fishes])
+                if self.fishCollideIndex != -1:
+                    if self.boat.caughtFishIndex == -1:
+                        self.boat.caughtFishIndex = self.fishCollideIndex
+                    if self.boat.caughtFishIndex == self.fishCollideIndex:                    
+                        self.fishes[self.fishCollideIndex].caught = True
+                        self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
+                        self.boat.caughtFish = True
+                        self.boat.gotoPos = self.boat.defaultBaitPos.copy()
+                        self.boat.fromPos = list(self.boat.baitRect.center)
+
+                        self.scareRadius = pygame.Rect(0, 0, 400, 300)
+                        self.scareRadius.center = self.fishes[self.fishCollideIndex].rect.center
+                        for fishIndex in self.scareRadius.collidelistall([fish.hitBoxRect for fish in self.fishes]):
+                            if fishIndex != self.fishCollideIndex:
+                                self.fishes[fishIndex].scare(self.fishes[self.fishCollideIndex].rect)
+                        
+
+                        self.fishes[self.fishCollideIndex].scared = False
+                    
+                    # print("CAUGHT!!!")
+
+        if self.isFishing:
+            if not self.cameraOutOfBounds:
+                self.screenPos[0] = -self.boat.baitRect.centerx + WIDTH//2
+            else:
+                self.screenPos[0] = -(self.endOfMap - WIDTH)
+            self.screenPos[1] = -self.boat.baitRect.centery + HEIGHT//2
+
+        if self.boat.staticRect.centerx != WIDTH//2:
+            # print("NOT DOCKED ANYMORE")
+            self.boat.dockedIn = False
+            if self.harborTextOpacity > 0:
+                self.harborTextOpacity -= 5
+        else:
+            # print("DOCKED IN")
+            if not self.boat.dockedIn:
+                self.boat.dockedIn = True
+                self.usePressed = False
+            # self.usePressed = False
+            if self.harborTextOpacity < 255:
+                self.harborTextOpacity += 5
+            else:
+                self.harborTextOpacity = 255
+
+        if not self.boat.caughtFish:
+            for fish in self.fishes:
+                if fish.rect.right < 0 or fish.rect.left > self.endOfMap:
+                    self.fishes.remove(fish)
+                    print(gc.collect())
+                    self.totalFishAmount -= 1
+                    # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
+        
+        if self.totalFishAmount < self.fishAmount and not self.boat.caughtFish and self.fishCollideIndex == -1:
+            self.totalFishAmount += 1
+            self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
+
+        if self.usePressed and self.boat.dockedIn and not self.isFishing:
+            if self.showingShops:
+                if self.transition == 0:
+                    self.transition = -1
+                else:
+                    self.transition = 1
+                self.usePressed = False
+            else:
+                if self.transition == 0:
+                    self.transition = 1
+                else:
+                    self.transition = -1
+                self.usePressed = False
+
+        self.gsPos[0] += 3 * self.transition
+        self.shopsRect.right += 3 * self.transition
+        # print(self.gsPos[0], WIDTH)
+        if self.gsPos[0] >= WIDTH:
+            self.gsPos[0] = WIDTH
+            self.shopsRect.right = WIDTH
+            self.transition = 0
+            self.usePressed = False
+            self.showingShops = True
+        elif self.gsPos[0] < 0:
+            self.gsPos[0] = 0
+            self.shopsRect.right = 0
+            self.transition = 0
+            self.usePressed = False
+            self.showingShops = False
+
+        if not self.isFishing:
+            if (not equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 3) and self.directionX == 0):
+                # print("SC")
+                if -self.screenPos[0] + WIDTH//2 > self.boat.staticRect.centerx:
+                    self.screenPos[0] += 3
+                else:
+                    self.screenPos[0] -= 3
+            if not self.boat.dockedIn:
+                if not equalPlusMinus(-self.screenPos[1] + HEIGHT//2, self.boat.staticRect.centery - 138, 3) and self.directionY == 0:
+                    if -self.screenPos[1] + HEIGHT//2 > self.boat.staticRect.centery - 138:
+                        self.screenPos[1] += 3
+                    else:
+                        self.screenPos[1] -= 3
+                    # print(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx)
+                    # self.screenPos[0] += 1
+                elif equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 10) and self.directionX == 0:
+                    self.screenPos[0] = -(self.boat.staticRect.centerx - WIDTH//2)
+            else:
+                if self.screenPos[1] < 0:
+                    self.screenPos[1] += 3
+
+
+        try:
+            # print([WIDTH - self.screenPos[0], HEIGHT//4 - self.screenPos[1]])
+            self.water = pygame.Surface([WIDTH - self.screenPos[0], 162 - self.screenPos[1]])
+        except:
+            pass
+
+        # if screenY < -500:
+        #     self.water.fill((46,166,204))
+        # else:
+        #     self.water.fill((100,100,250))
+        # if screenY < -700:
+        #     self.water.fill((40,40,180))
+        self.water.fill((46,166,204))
+
+        self.waterRect = self.water.get_rect()
+        self.waterRect.bottomleft = [0, HEIGHT - self.screenPos[1]]
+        # print(self.waterRect.w)
+
+        if self.silonTextOpacity > 200:
+            self.fade = -10
+        elif self.silonTextOpacity < 50 and self.outOfSilon:
+            self.fade = 10
+        
+        # print(self.silonTextOpacity)
+
+        self.silonTextOpacity += self.fade
+
+        # self.silonTextRect.center = [WIDTH//2 - self.screenPos[0], HEIGHT//2 - self.screenPos[1] - 100]
+        self.silonTextRect.center = (self.boat.baitRect.centerx, self.boat.baitRect.centery - 50)
+        self.silonText.set_alpha(self.silonTextOpacity)
+
+        self.gameScreenS = pygame.Surface((WIDTH - self.screenPos[0] + 2, HEIGHT - self.screenPos[1]))
+
+        for i, background in enumerate(self.backgrounds):
+            if background[1].right > abs(currentScreen.screenPos[0]) and background[1].left < WIDTH + abs(currentScreen.screenPos[0]) and background[1].bottom > abs(currentScreen.screenPos[1]) and background[1].top < HEIGHT + abs(currentScreen.screenPos[1]):
+                self.gameScreenS.blit(background[0], background[1])
+                # print("BLITTING BACKGROUND", i)
+
+        self.reflectionSurfRect.topleft = [-self.screenPos[0]-2,self.waterRect.y + self.boat.staticRect.h/6]
+
+        if not self.isFishing and self.boat.wsFinished:
+            self.boat.wsFinished = False
+
+
+        for i, bgR in enumerate(self.backgroundReflections):
+            bgR.set_alpha(self.bgReflectionAlpha)
+            self.water.blit(bgR, [WIDTH*i,-160])
+        # self.gameScreenS.blit(waterReflectionSurf, self.waterRect)
+        self.gameScreenS.blit(self.water, self.waterRect)
+
+        fishUpdateThread = threading.Thread(target=self.updateFish)
+        fishDrawThread = threading.Thread(target=self.drawFish)
+        boatThread = threading.Thread(target=self.updateBoat)
+
+        boatThread.start()
+        fishUpdateThread.start()
+
+        # print(len(threading.enumerate()))
+        
+        boatThread.join()
+        fishDrawThread.start()
+
+        if not boatThread.is_alive():
+            fishUpdateThread.join()
+            if not fishUpdateThread.is_alive():
+                fishDrawThread.join()
+
+        self.backgroundReflections = []
+        for bg in self.backgrounds:
+            bgReflection = pygame.transform.flip(bg[0], False, True)
+            bgReflection.set_alpha(self.setReflectionAlpha)
+            self.backgroundReflections.append(bgReflection)
+
+        if not self.isFishing or not self.boat.wsFinished:
+            if self.reflectionSurfAlpha < 255:
+                self.reflectionSurfAlpha += 13
+            if self.bgReflectionAlpha < self.setReflectionAlpha:
+                self.bgReflectionAlpha += 4
+        else:
+            if self.reflectionSurfAlpha > 0:
+                self.reflectionSurfAlpha -= 13
+            if self.bgReflectionAlpha > 0:
+                self.bgReflectionAlpha -= 4
+        # print(self.reflectionSurfAlpha)
+
+        boatReflection = pygame.transform.flip(self.boat.imageR, False, True)
+
+        self.reflectionSurf.fill((46,166,204))
+        bgShowing = 0
+        for i, bgR in enumerate(self.backgroundReflections):
+            if i*WIDTH - WIDTH <= -self.screenPos[0] or i*WIDTH >= -self.screenPos[0]:
+                bgShowing += 1
+                bgR.blit(boatReflection, [self.boat.rect.left-WIDTH*i,160])
+                self.reflectionSurf.blit(bgR, [WIDTH*i + self.screenPos[0] + 2, -185])
+        
+        self.reflectionSurf.set_alpha(self.reflectionSurfAlpha)
+        self.gameScreenS.blit(self.reflectionSurf, self.reflectionSurfRect)
+        
+
+        self.gameScreenS.blit(self.harbor, self.harborRect)
+        screenS.blit(self.shops, self.shopsRect)
+        # self.gameScreenS.blit(self.text, [0,0])
+        if not (self.transition or self.showingShops):
+            self.gameScreenS.blit(self.moneyBar, self.moneyRect)
+            moneyTextPos = self.moneyRect.center
+            moneyTextRect = self.moneyText.get_rect()
+            moneyTextRect.center = moneyTextPos
+            moneyTextRect.left += 2
+            self.gameScreenS.blit(self.moneyText, moneyTextRect)
+
+        self.capacityRect.top += 5
+        self.gameScreenS.blit(self.capacityBar, self.capacityRect)
+        capacityTextPos = self.capacityRect.center
+        capacityTextRect = self.capacityText.get_rect()
+        capacityTextRect.center = capacityTextPos
+        self.gameScreenS.blit(self.capacityText, capacityTextRect)
+
+        self.harborText.set_alpha(self.harborTextOpacity)
+        if self.harborTextOpacity > 0:
+            self.gameScreenS.blit(self.harborText, self.harborTextRect)
+
+        # print(self.screenPos, self.boat.x)
+        
+        # if self.screenPos[0] + WIDTH >= WIDTH:
+        # print("-",self.boat.rect.centerx, "+", WIDTH, "=", -self.boat.staticRect.centerx + WIDTH)
+        if -self.boat.staticRect.centerx + WIDTH >= WIDTH//2:
+            self.leftPressed = False
+            if self.isFishing and self.boat.baitX > 1:
+                self.boat.baitX -= 1
+
+        if self.boat.x >= self.endOfMap - WIDTH//2:
+            self.rightPressed = False
+            
+        if self.isFishing:
+            if self.boat.baitRect.centerx + WIDTH//2 > self.endOfMap:
+                self.cameraOutOfBounds = True
+            elif self.boat.baitRect.centerx + WIDTH//2 < self.endOfMap:
+                self.cameraOutOfBounds = False
+
+        if self.screenPos[1] + HEIGHT >= HEIGHT:
+            self.downPressed = False
+
+        if self.leftPressed:
+            self.directionX = 1
+            self.rightPressed = False
+        elif self.rightPressed:
+            self.directionX = -1
+            self.leftPressed = False
+        else:
+            self.directionX = 0
+
+        if not self.boat.caughtFish:
+            if self.downPressed:
+                self.directionY = -1
+                self.upPressed = False
+            elif self.upPressed:
+                self.directionY = 1
+                self.downPressed = False
+            else:
+                self.directionY = 0
+        else:
+            self.directionX = 0
+
+        if self.screenPos[0] <= 0 and self.screenPos[0] - WIDTH >= -self.endOfMap:
+            self.screenPos[0] += self.directionX * (self.boat.speed if (self.boat.staticRect.centerx - abs(self.screenPos[0])) <= 250 or abs(self.boat.staticRect.centerx - abs(self.screenPos[0] - WIDTH)) <= 250 else self.cameraSpeed)
+        
+        if self.screenPos[0] > 0:
+            self.screenPos[0] = 0
+
+
+        self.screenPos[1] += self.directionY * self.cameraSpeed
+
+        # screenS.blit(self.block, self.blockRect)
+
+        self.fishShowingCount = 0
+        # print(self.fishShowingCount, self.totalFishAmount)
+
+        if self.isFishing and self.silonTextOpacity > 5:
+            self.gameScreenS.blit(self.silonText, self.silonTextRect)
+        else:
+            self.silonTextOpacity = 0
+
+        # screenS.blit(self.water2, self.water2Rect)
+        
+        if self.fishInventoryShow:
+            self.fishInventory.update()
+
+        # pygame.draw.rect(self.gameScreenS, [255,0,0], self.scareRadius)
+
+        screenS.blit(self.gameScreenS, self.gsPos)
+
+        if self.transition or self.showingShops:
+            screenS.blit(self.moneyText, self.moneyRect)
+
+    def keyDown(self, key):
+        if not self.boat.throwingBait and (not self.transition and not self.showingShops):
+            if key == pygame.K_a:
+                self.leftPressed = True
+
+            if key == pygame.K_d:
+                self.rightPressed = True
+
+            # if key == pygame.K_s and self.isFishing:
+                # self.upPressed = True
+            
+            if key == pygame.K_w and self.isFishing:
+                self.upPressed = True
+
+            if key == pygame.K_i:
+                self.fishInventoryShow = not self.fishInventoryShow
+                if self.isFishing or self.boat.dockedIn:
+                    self.fishInventoryShow = False
+
+            if key == pygame.K_DOWN:
+                if self.fishInventoryShow:
+                    self.fishInventory.moveDown = True
+
+            if key == pygame.K_UP:
+                if self.fishInventoryShow:
+                    self.fishInventory.moveUp = True
+
+        if key == pygame.K_SPACE and (self.isFishing or self.boat.staticRect.centerx != WIDTH//2):
+            if not self.fishInventoryShow:
+                if not self.isFishing:
+                    self.boat.charging = True
+                    # self.boat.throwingBait = True
+                    # self.isFishing = True
+                elif not self.boat.throwingBait and not self.boat.charging:
+                    if not self.boat.rollBack:
+                        self.boat.rollBack = True
+                    else:
+                        self.boat.rollBack = False
+                    self.boat.fromPos = list(self.boat.baitRect.center)
+                    self.boat.gotoPos = self.boat.defaultBaitPos.copy()
+
+        if key == pygame.K_e:
+            self.usePressed = not self.usePressed
+            # self.screenPos[0] = -self.boat.baitRect.centerx + WIDTH//2
+            # self.screenPos[1] = -self.boat.baitRect.centery + HEIGHT//2
+
+    def keyUp(self, key):
+        if key == pygame.K_a:
+            self.leftPressed = False
+
+        if key == pygame.K_d:
+            self.rightPressed = False
+
+        if key == pygame.K_w:
+            self.upPressed = False
+        
+        if key == pygame.K_w:
+            self.downPressed = False
+
+        if key == pygame.K_DOWN:
+            if not self.fishInventoryShow:
+                self.downPressed = False
+            else:
+                self.fishInventory.moveDown = False
+
+        if key == pygame.K_UP:
+            if not self.fishInventoryShow:
+                self.upPressed = False
+            else:
+                self.fishInventory.moveUp = False
+        
+        if key == pygame.K_SPACE:
+            if self.boat.charging:
+                self.boat.charging = False
+                self.boat.throwingBait = True
+                self.isFishing = True
+
+    def mouseButtonDown(self):
+        if self.fishInventoryShow:
+            self.fishInventory.click(pygame.mouse.get_pos())
+
+    def mouseScoll(self, e):
+        if self.fishInventoryShow:
+            self.fishInventory.scroll(e)
+
 
 class WaterSplash:
     def __init__(self, pos = [100,100], sizeX = -1, sizeY = -1):
@@ -380,7 +1106,6 @@ class Fish:
                     currentScreen.boat.caughtFishIndex = -1
                     currentScreen.gameScreenS.blit(self.image, self.rect)
                     currentScreen.isFishing = False
-
 
 class Boat:
     def __init__(self):
@@ -625,616 +1350,6 @@ class Boat:
                 elif self.rollBack:
                     self.rollBack = False
 
-class GameScreen(Screen):
-    def __init__(self):
-        self.boat = Boat()
-
-        # self.fishThread = threading.Thread(target=self.updateFish)
-        # self.fishThreadStarted = False
-
-        self.gameScreenS = pygame.Surface((WIDTH, HEIGHT))
-        self.gameScreenS.set_alpha(0)
-        self.gsPos = [0,0]
-
-        self.reflectionSurf = pygame.Surface((WIDTH + 4, HEIGHT//2))
-        self.reflectionSurfRect = self.reflectionSurf.get_rect()
-        self.reflectionSurfRect.topleft = [0,0]
-
-        self.reflectionSurf.fill((46,166,204))
-
-        self.boatSave = json.load(open("boatSave.json"))
-
-        self.screenPos = self.boatSave["screenPos"]
-        self.cameraOutOfBounds = False
-
-        self.money = json.load(open("inventorySave.json"))["money"]
-        self.maxCapacity = 10
-        self.capacity = 0
-
-        self.region = "tatry"
-
-        # self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
-        # self.background.fill((100,150,100))
-
-        self.endOfMap = 0
-
-        self.shops = load_image(f'img/{self.region}/backgrounds/obchody.png')
-        self.shopsRect = self.shops.get_rect()
-        self.shopsRect.topright = [0,0]
-        self.transition = 0
-        self.showingShops = False
-
-        self.background = load_image(f'img/{self.region}/backgrounds/pozadie.png')
-        self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(2)]
-        for i in range(len(self.backgrounds)):
-            self.backgrounds[i][1].topleft = [i*WIDTH, 0]
-            self.endOfMap += i*WIDTH
-
-        self.endOfMap *= 2
-
-        # self.boat.x = self.endOfMap - WIDTH//2
-
-        self.waterTexture = load_image('img/waterTexture.png')
-        
-        print([WIDTH + self.screenPos[0], 162])
-        print(self.screenPos[0])
-        self.water = pygame.Surface([WIDTH + self.screenPos[0], 162], pygame.SRCALPHA)
-        self.water.fill((46,166,204))
-        self.waterRect = self.water.get_rect()
-        self.waterRect.bottomleft = [0, HEIGHT]
-        self.water2 = self.water.copy()
-        self.water2Rect = self.waterRect.copy()
-        self.water2.fill((46,166,204,50))
-        self.font = pygame.font.Font("font/pixelFont.ttf", 20)
-        self.text = self.font.render("GAME", False, [255,255,255])
-
-        self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
-        self.harborRect = self.harbor.get_rect()
-        self.harborRect.centery = self.waterRect.top - 20
-        # print(self.harborRect.top)
-        self.harborRect.left = 0
-
-        self.harborFont = pygame.font.Font(None, 70)
-
-        self.harborTextOpacity = 0
-        self.harborText = self.harborFont.render("Harbor", False, (255,255,255)).convert_alpha()
-        self.harborText.set_alpha(self.harborTextOpacity)
-        self.harborTextRect = self.harborText.get_rect()
-        self.harborTextRect.center = [WIDTH//2, 150]
-
-        levelsJson = open("fishLevels.json")
-        self.fishLevels = json.load(levelsJson)
-        
-        fishRarityJson = open("fishRarity.json")
-        self.fishRarity = json.load(fishRarityJson)
-
-        self.totalFishAmount = 0
-        self.originalFishNames = [imgName.removesuffix(".png") for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
-        self.fishNames = genFishNamesForRarity(self.originalFishNames, self.fishRarity)
-        print(self.fishNames)
-        self.fishInventoryDict = json.load(open("inventorySave.json"))["inventory"]
-        for name in self.originalFishNames:
-            if self.fishInventoryDict[name] > 0:
-                self.capacity += self.fishInventoryDict[name]
-        print(self.fishInventoryDict)
-        print(self.fishInventoryDict)
-        # self.fishAmount = 25
-        self.fishAmount = self.endOfMap//100 + 5
-        # print(self.fishAmount)
-
-        self.fishes = []
-        self.fishShowingCount = 0
-
-        for i in range(self.fishAmount):
-            self.totalFishAmount += 1
-            self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
-
-        # self.block = pygame.Surface([200, 200])
-        # self.block.fill((0,0,0))
-        # self.blockRect = self.block.get_rect()
-        # self.blockRect.center = [10,200]
-
-        self.silonText = self.harborFont.render("Out of line", False, [255,255,255])
-        self.silonTextRect = self.silonText.get_rect()
-        self.silonTextRect.center = [WIDTH//2 + self.screenPos[0], HEIGHT//2 + self.screenPos[1]]
-        self.silonTextOpacity = 0
-        self.fade = 0
-        self.outOfSilon = False
-
-        self.directionX = 0
-        self.directionY = 0
-        self.cameraSpeed = 2
-        self.defaultBoatX = self.boat.x
-
-        self.leftPressed = False
-        self.rightPressed = False
-        self.downPressed = False
-        self.upPressed = False
-        self.usePressed = False
-
-        self.correctCameraPos = [self.defaultBoatX, 0]
-        self.currentCameraPos = [self.defaultBoatX + self.boat.x, 0]
-
-        self.isFishing = False
-        self.fishCollideIndex = -1
-
-        self.fishInventory = FishInventory()
-        self.fishInventoryShow = False
-
-        self.moneyBar = load_image("img/moneyBar.png")
-        self.moneyText = self.font.render(f'{self.money}¢', False, [227,188,15])
-        self.moneyRect = self.moneyBar.get_rect()
-        self.moneyRect.topleft = [10,10]
-
-        self.capacityBar = load_image("img/moneyBar.png")
-        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
-        self.capacityRect = self.capacityBar.get_rect()
-
-        self.scareRadius = pygame.Rect(0, 0, 200, 200)
-
-        self.setReflectionAlpha = 80
-        self.reflectionSurfAlpha = 255
-        self.reflectionAlpha = 80
-        self.bgReflectionAlpha = 80
-
-        self.backgroundReflections = []
-        for bg in self.backgrounds:
-            bgReflection = pygame.transform.flip(bg[0], False, True)
-            bgReflection.set_alpha(self.setReflectionAlpha)
-            self.backgroundReflections.append(bgReflection)
-
-    def updateFish(self):
-        for i, fish in enumerate(self.fishes):
-            fish.update()
-            # print(gc.collect())
-
-    def drawFish(self):
-        for fish in self.fishes:
-            if fish.rect.right > abs(self.screenPos[0]) and fish.rect.left < WIDTH + abs(self.screenPos[0]):
-                if fish.rect.bottom > abs(self.screenPos[1]) and fish.rect.top < HEIGHT + abs(self.screenPos[1]):
-                    fish.draw()
-                elif fish.caught:
-                    fish.draw()
-            elif fish.caught:
-                fish.draw()
-        # print("Updated fishes!")
-
-    def updateBoat(self):
-        if self.isFishing:
-            self.boat.update(self.isFishing, self.screenPos)
-        else:
-            self.boat.update(self.isFishing)
-
-
-    def update(self):
-        # print(self.totalFishAmount)
-
-        # print(clock.get_fps())
-
-        # if not self.fishThreadStarted:
-            # self.fishThreadStarted = True
-
-        # if self.fishThread.is_started:
-            # self.fishThread.join()
-
-        self.currentCameraPos = [self.defaultBoatX + self.screenPos[0], 0]
-
-        moneyTextCont = self.money
-        if self.money > 1000000:
-            moneyTextCont = str(int(self.money/1000000*10)/10) + "M"
-        elif self.money > 1000:
-            moneyTextCont = str(int(self.money/1000*10)/10) + "K"
-        self.moneyText = self.font.render(f'{moneyTextCont}¢', False, [227,188,15])
-        self.moneyRect = self.moneyBar.get_rect()
-        self.moneyRect.topleft = [-self.screenPos[0] + 10, -self.screenPos[1] + 10]
-
-        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
-        self.capacityRect = self.capacityBar.get_rect()
-        self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 45]
-
-        # print(clock.get_fps())
-
-        # self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
-        # self.background.fill((100,150,100))
-
-        # print(self.usePressed)
-
-        anyFishDropping = True if (True in [fish.drop for fish in self.fishes]) else False
-
-        if self.isFishing:
-            if not anyFishDropping:
-                if not self.boat.caughtFish:
-                    self.fishCollideIndex = self.boat.baitRect.collidelist([fish.hitBoxRect for fish in self.fishes])
-                if self.fishCollideIndex != -1:
-                    if self.boat.caughtFishIndex == -1:
-                        self.boat.caughtFishIndex = self.fishCollideIndex
-                    if self.boat.caughtFishIndex == self.fishCollideIndex:                    
-                        self.fishes[self.fishCollideIndex].caught = True
-                        self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
-                        self.boat.caughtFish = True
-                        self.boat.gotoPos = self.boat.defaultBaitPos.copy()
-                        self.boat.fromPos = list(self.boat.baitRect.center)
-
-                        self.scareRadius = pygame.Rect(0, 0, 400, 300)
-                        self.scareRadius.center = self.fishes[self.fishCollideIndex].rect.center
-                        for fishIndex in self.scareRadius.collidelistall([fish.hitBoxRect for fish in self.fishes]):
-                            if fishIndex != self.fishCollideIndex:
-                                self.fishes[fishIndex].scare(self.fishes[self.fishCollideIndex].rect)
-                        
-
-                        self.fishes[self.fishCollideIndex].scared = False
-                    
-                    # print("CAUGHT!!!")
-
-        if self.isFishing:
-            if not self.cameraOutOfBounds:
-                self.screenPos[0] = -self.boat.baitRect.centerx + WIDTH//2
-            else:
-                self.screenPos[0] = -(self.endOfMap - WIDTH)
-            self.screenPos[1] = -self.boat.baitRect.centery + HEIGHT//2
-
-        if self.boat.staticRect.centerx != WIDTH//2:
-            # print("NOT DOCKED ANYMORE")
-            self.boat.dockedIn = False
-            if self.harborTextOpacity > 0:
-                self.harborTextOpacity -= 5
-        else:
-            # print("DOCKED IN")
-            if not self.boat.dockedIn:
-                self.boat.dockedIn = True
-                self.usePressed = False
-            # self.usePressed = False
-            if self.harborTextOpacity < 255:
-                self.harborTextOpacity += 5
-            else:
-                self.harborTextOpacity = 255
-
-        if not self.boat.caughtFish:
-            for fish in self.fishes:
-                if fish.rect.right < 0 or fish.rect.left > self.endOfMap:
-                    self.fishes.remove(fish)
-                    print(gc.collect())
-                    self.totalFishAmount -= 1
-                    # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
-        
-        if self.totalFishAmount < self.fishAmount and not self.boat.caughtFish and self.fishCollideIndex == -1:
-            self.totalFishAmount += 1
-            self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
-
-        if self.usePressed and self.boat.dockedIn and not self.isFishing:
-            if self.showingShops:
-                if self.transition == 0:
-                    self.transition = -1
-                else:
-                    self.transition = 1
-                self.usePressed = False
-            else:
-                if self.transition == 0:
-                    self.transition = 1
-                else:
-                    self.transition = -1
-                self.usePressed = False
-
-        self.gsPos[0] += 3 * self.transition
-        self.shopsRect.right += 3 * self.transition
-        # print(self.gsPos[0], WIDTH)
-        if self.gsPos[0] >= WIDTH:
-            self.gsPos[0] = WIDTH
-            self.shopsRect.right = WIDTH
-            self.transition = 0
-            self.usePressed = False
-            self.showingShops = True
-        elif self.gsPos[0] < 0:
-            self.gsPos[0] = 0
-            self.shopsRect.right = 0
-            self.transition = 0
-            self.usePressed = False
-            self.showingShops = False
-
-        if not self.isFishing:
-            if (not equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 3) and self.directionX == 0):
-                # print("SC")
-                if -self.screenPos[0] + WIDTH//2 > self.boat.staticRect.centerx:
-                    self.screenPos[0] += 3
-                else:
-                    self.screenPos[0] -= 3
-            if not self.boat.dockedIn:
-                if not equalPlusMinus(-self.screenPos[1] + HEIGHT//2, self.boat.staticRect.centery - 138, 3) and self.directionY == 0:
-                    if -self.screenPos[1] + HEIGHT//2 > self.boat.staticRect.centery - 138:
-                        self.screenPos[1] += 3
-                    else:
-                        self.screenPos[1] -= 3
-                    # print(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx)
-                    # self.screenPos[0] += 1
-                elif equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 10) and self.directionX == 0:
-                    self.screenPos[0] = -(self.boat.staticRect.centerx - WIDTH//2)
-            else:
-                if self.screenPos[1] < 0:
-                    self.screenPos[1] += 3
-
-
-        try:
-            # print([WIDTH - self.screenPos[0], HEIGHT//4 - self.screenPos[1]])
-            self.water = pygame.Surface([WIDTH - self.screenPos[0], 162 - self.screenPos[1]])
-            self.water2 = pygame.Surface([WIDTH - self.screenPos[0], 162 - self.screenPos[1]], pygame.SRCALPHA)
-        except:
-            pass
-
-        # if screenY < -500:
-        #     self.water.fill((46,166,204))
-        # else:
-        #     self.water.fill((100,100,250))
-        # if screenY < -700:
-        #     self.water.fill((40,40,180))
-        self.water.fill((46,166,204))
-
-        self.waterRect = self.water.get_rect()
-        self.waterRect2 = self.water2.get_rect()
-        self.waterRect.bottomleft = [0, HEIGHT - self.screenPos[1]]
-        self.waterRect2.bottomleft = [0, HEIGHT - self.screenPos[1]]
-        self.water2.fill((100,100,250,50))
-        # print(self.waterRect.w)
-
-        if self.silonTextOpacity > 200:
-            self.fade = -10
-        elif self.silonTextOpacity < 50 and self.outOfSilon:
-            self.fade = 10
-        
-        # print(self.silonTextOpacity)
-
-        self.silonTextOpacity += self.fade
-
-        # self.silonTextRect.center = [WIDTH//2 - self.screenPos[0], HEIGHT//2 - self.screenPos[1] - 100]
-        self.silonTextRect.center = (self.boat.baitRect.centerx, self.boat.baitRect.centery - 50)
-        self.silonText.set_alpha(self.silonTextOpacity)
-
-        self.gameScreenS = pygame.Surface((WIDTH - self.screenPos[0] + 2, HEIGHT - self.screenPos[1]))
-
-        for i, background in enumerate(self.backgrounds):
-            if background[1].right > abs(currentScreen.screenPos[0]) and background[1].left < WIDTH + abs(currentScreen.screenPos[0]) and background[1].bottom > abs(currentScreen.screenPos[1]) and background[1].top < HEIGHT + abs(currentScreen.screenPos[1]):
-                self.gameScreenS.blit(background[0], background[1])
-                # print("BLITTING BACKGROUND", i)
-
-        self.reflectionSurfRect.topleft = [-self.screenPos[0]-2,self.waterRect.y + self.boat.staticRect.h/6]
-
-        if not self.isFishing and self.boat.wsFinished:
-            self.boat.wsFinished = False
-
-
-        for i, bgR in enumerate(self.backgroundReflections):
-            bgR.set_alpha(self.bgReflectionAlpha)
-            self.water.blit(bgR, [WIDTH*i,-160])
-        # self.gameScreenS.blit(waterReflectionSurf, self.waterRect)
-        self.gameScreenS.blit(self.water, self.waterRect)
-
-        fishUpdateThread = threading.Thread(target=self.updateFish)
-        fishDrawThread = threading.Thread(target=self.drawFish)
-        boatThread = threading.Thread(target=self.updateBoat)
-
-        boatThread.start()
-        fishUpdateThread.start()
-
-        # print(len(threading.enumerate()))
-        
-        boatThread.join()
-        fishDrawThread.start()
-
-        if not boatThread.is_alive():
-            fishUpdateThread.join()
-            if not fishUpdateThread.is_alive():
-                fishDrawThread.join()
-
-        self.backgroundReflections = []
-        for bg in self.backgrounds:
-            bgReflection = pygame.transform.flip(bg[0], False, True)
-            bgReflection.set_alpha(self.setReflectionAlpha)
-            self.backgroundReflections.append(bgReflection)
-
-        if not self.isFishing or not self.boat.wsFinished:
-            if self.reflectionSurfAlpha < 255:
-                self.reflectionSurfAlpha += 13
-            if self.bgReflectionAlpha < self.setReflectionAlpha:
-                self.bgReflectionAlpha += 4
-        else:
-            if self.reflectionSurfAlpha > 0:
-                self.reflectionSurfAlpha -= 13
-            if self.bgReflectionAlpha > 0:
-                self.bgReflectionAlpha -= 4
-        print(self.reflectionSurfAlpha)
-
-        boatReflection = pygame.transform.flip(self.boat.imageR, False, True)
-
-        self.reflectionSurf.fill((46,166,204))
-        bgShowing = 0
-        for i, bgR in enumerate(self.backgroundReflections):
-            if i*WIDTH - WIDTH <= -self.screenPos[0] or i*WIDTH >= -self.screenPos[0]:
-                bgShowing += 1
-                bgR.blit(boatReflection, [self.boat.rect.left-WIDTH*i,165])
-                self.reflectionSurf.blit(bgR, [WIDTH*i + self.screenPos[0] + 2, -185])
-        
-        self.reflectionSurf.set_alpha(self.reflectionSurfAlpha)
-        self.gameScreenS.blit(self.reflectionSurf, self.reflectionSurfRect)
-        
-
-        self.gameScreenS.blit(self.harbor, self.harborRect)
-        screenS.blit(self.shops, self.shopsRect)
-        # self.gameScreenS.blit(self.text, [0,0])
-        if not (self.transition or self.showingShops):
-            self.gameScreenS.blit(self.moneyBar, self.moneyRect)
-            moneyTextPos = self.moneyRect.center
-            moneyTextRect = self.moneyText.get_rect()
-            moneyTextRect.center = moneyTextPos
-            moneyTextRect.left += 2
-            self.gameScreenS.blit(self.moneyText, moneyTextRect)
-
-        self.capacityRect.top += 5
-        self.gameScreenS.blit(self.capacityBar, self.capacityRect)
-        capacityTextPos = self.capacityRect.center
-        capacityTextRect = self.capacityText.get_rect()
-        capacityTextRect.center = capacityTextPos
-        self.gameScreenS.blit(self.capacityText, capacityTextRect)
-
-        self.harborText.set_alpha(self.harborTextOpacity)
-        if self.harborTextOpacity > 0:
-            self.gameScreenS.blit(self.harborText, self.harborTextRect)
-
-        # print(self.screenPos, self.boat.x)
-        
-        # if self.screenPos[0] + WIDTH >= WIDTH:
-        # print("-",self.boat.rect.centerx, "+", WIDTH, "=", -self.boat.staticRect.centerx + WIDTH)
-        if -self.boat.staticRect.centerx + WIDTH >= WIDTH//2:
-            self.leftPressed = False
-            if self.isFishing and self.boat.baitX > 1:
-                self.boat.baitX -= 1
-
-        if self.boat.x >= self.endOfMap - WIDTH//2:
-            self.rightPressed = False
-            
-        if self.isFishing:
-            if self.boat.baitRect.centerx + WIDTH//2 > self.endOfMap:
-                self.cameraOutOfBounds = True
-            elif self.boat.baitRect.centerx + WIDTH//2 < self.endOfMap:
-                self.cameraOutOfBounds = False
-
-        if self.screenPos[1] + HEIGHT >= HEIGHT:
-            self.downPressed = False
-
-        if self.leftPressed:
-            self.directionX = 1
-            self.rightPressed = False
-        elif self.rightPressed:
-            self.directionX = -1
-            self.leftPressed = False
-        else:
-            self.directionX = 0
-
-        if not self.boat.caughtFish:
-            if self.downPressed:
-                self.directionY = -1
-                self.upPressed = False
-            elif self.upPressed:
-                self.directionY = 1
-                self.downPressed = False
-            else:
-                self.directionY = 0
-        else:
-            self.directionX = 0
-
-        if self.screenPos[0] <= 0 and self.screenPos[0] - WIDTH >= -self.endOfMap:
-            self.screenPos[0] += self.directionX * (self.boat.speed if (self.boat.staticRect.centerx - abs(self.screenPos[0])) <= 250 or abs(self.boat.staticRect.centerx - abs(self.screenPos[0] - WIDTH)) <= 250 else self.cameraSpeed)
-        
-        if self.screenPos[0] > 0:
-            self.screenPos[0] = 0
-
-
-        self.screenPos[1] += self.directionY * self.cameraSpeed
-
-        # screenS.blit(self.block, self.blockRect)
-
-        self.fishShowingCount = 0
-        # print(self.fishShowingCount, self.totalFishAmount)
-
-        if self.isFishing and self.silonTextOpacity > 5:
-            self.gameScreenS.blit(self.silonText, self.silonTextRect)
-        else:
-            self.silonTextOpacity = 0
-
-        # screenS.blit(self.water2, self.water2Rect)
-        
-        if self.fishInventoryShow:
-            self.fishInventory.update()
-
-        # pygame.draw.rect(self.gameScreenS, [255,0,0], self.scareRadius)
-
-        screenS.blit(self.gameScreenS, self.gsPos)
-
-        if self.transition or self.showingShops:
-            screenS.blit(self.moneyText, self.moneyRect)
-
-    def keyDown(self, key):
-        if not self.boat.throwingBait and (not self.transition and not self.showingShops):
-            if key == pygame.K_a:
-                self.leftPressed = True
-
-            if key == pygame.K_d:
-                self.rightPressed = True
-
-            # if key == pygame.K_s and self.isFishing:
-                # self.upPressed = True
-            
-            if key == pygame.K_w and self.isFishing:
-                self.upPressed = True
-
-            if key == pygame.K_i:
-                self.fishInventoryShow = not self.fishInventoryShow
-                if self.isFishing or self.boat.dockedIn:
-                    self.fishInventoryShow = False
-
-            if key == pygame.K_DOWN:
-                if self.fishInventoryShow:
-                    self.fishInventory.moveDown = True
-
-            if key == pygame.K_UP:
-                if self.fishInventoryShow:
-                    self.fishInventory.moveUp = True
-
-        if key == pygame.K_SPACE and (self.isFishing or self.boat.staticRect.centerx != WIDTH//2):
-            if not self.fishInventoryShow:
-                if not self.isFishing:
-                    self.boat.charging = True
-                    # self.boat.throwingBait = True
-                    # self.isFishing = True
-                elif not self.boat.throwingBait and not self.boat.charging:
-                    if not self.boat.rollBack:
-                        self.boat.rollBack = True
-                    else:
-                        self.boat.rollBack = False
-                    self.boat.fromPos = list(self.boat.baitRect.center)
-                    self.boat.gotoPos = self.boat.defaultBaitPos.copy()
-
-        if key == pygame.K_e:
-            self.usePressed = not self.usePressed
-            # self.screenPos[0] = -self.boat.baitRect.centerx + WIDTH//2
-            # self.screenPos[1] = -self.boat.baitRect.centery + HEIGHT//2
-
-    def keyUp(self, key):
-        if key == pygame.K_a:
-            self.leftPressed = False
-
-        if key == pygame.K_d:
-            self.rightPressed = False
-
-        if key == pygame.K_w:
-            self.upPressed = False
-        
-        if key == pygame.K_w:
-            self.downPressed = False
-
-        if key == pygame.K_DOWN:
-            if not self.fishInventoryShow:
-                self.downPressed = False
-            else:
-                self.fishInventory.moveDown = False
-
-        if key == pygame.K_UP:
-            if not self.fishInventoryShow:
-                self.upPressed = False
-            else:
-                self.fishInventory.moveUp = False
-        
-        if key == pygame.K_SPACE:
-            if self.boat.charging:
-                self.boat.charging = False
-                self.boat.throwingBait = True
-                self.isFishing = True
-
-    def mouseButtonDown(self):
-        if self.fishInventoryShow:
-            self.fishInventory.click(pygame.mouse.get_pos())
-
-    def mouseScoll(self, e):
-        if self.fishInventoryShow:
-            self.fishInventory.scroll(e)
 
 class FishInventory:
     def __init__(self):
@@ -1368,59 +1483,38 @@ class InventoryItem:
         # if mousePos[0] > self.iconRect.left and mousePos[0] < self.iconRect.left + self.iconRect.width and mousePos[1] > self.iconRect.top and mousePos[1] < self.iconRect.top + self.iconRect.height
         #     print(self.name)
 
-
 class Button:
-    def __init__(self, image, clickedImage, pos = [WIDTH//2, HEIGHT//2]):
+    def __init__(self, image, clickedImage, function: Callable, pos = [WIDTH//2, HEIGHT//2]):
         self.img = load_image(image)
         self.imgC = load_image(clickedImage)
         self.rect = self.img.get_rect()
         self.rect.center = pos
+        self.function = function
 
-        self.clicked = False
+        self.pressed = False
 
     def click(self):
         mousePos = pygame.mouse.get_pos()
+        if mousePos[0] > self.rect.x and mousePos[0] < self.rect.x + self.rect.width and mousePos[1] > self.rect.y and mousePos[1] < self.rect.y + self.rect.height and self.pressed:
+            self.function()
+        self.pressed = False
+
+    def press(self):
+        mousePos = pygame.mouse.get_pos()
         if mousePos[0] > self.rect.x and mousePos[0] < self.rect.x + self.rect.width and mousePos[1] > self.rect.y and mousePos[1] < self.rect.y + self.rect.height:
-            self.clicked = not self.clicked
-        elif self.clicked:
-            self.clicked = False
+            self.pressed = True
 
     def update(self):
         self.draw()
 
     def draw(self):
-        if not self.clicked:
+        if not self.pressed:
             screenS.blit(self.img, self.rect)
         else:
             screenS.blit(self.imgC, self.rect)
-
-class StartButton(Button):
-    def click(self):
-        global currentScreen
-        mousePos = pygame.mouse.get_pos()
-        # print(mousePos)
-        if mousePos[0] > self.rect.x and mousePos[0] < self.rect.x + self.rect.width and mousePos[1] > self.rect.y and mousePos[1] < self.rect.y + self.rect.height:
-            self.clicked = not self.clicked
-            if not self.clicked:
-                currentScreen = GameScreen()
-        elif self.clicked:
-            self.clicked = False
-            currentScreen = GameScreen()
-
-class OptionsButton(Button):
-    def click(self):
-        global currentScreen
-        mousePos = pygame.mouse.get_pos()
-        if mousePos[0] > self.rect.x and mousePos[0] < self.rect.x + self.rect.width and mousePos[1] > self.rect.y and mousePos[1] < self.rect.y + self.rect.height:
-            self.clicked = not self.clicked
-            if not self.clicked:
-                currentScreen = optionsScreen
-        elif self.clicked:
-            self.clicked = False
-            currentScreen = optionsScreen
  
 menuScreen = MenuScreen()
-# gameScreen = GameScreen()
+gameScreen = GameScreen()
 optionsScreen = OptionsScreen()
 
 currentScreen = menuScreen
