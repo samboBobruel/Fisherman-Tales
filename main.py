@@ -239,9 +239,9 @@ class GameScreen(Screen):
 
         self.region = "tatry"
 
-        self.gameObjects()
-
         self.initData()
+
+        self.gameObjects()
 
         self.initImg()
 
@@ -294,21 +294,11 @@ class GameScreen(Screen):
         #Inventory save file
         self.inventorySave = json.load(open("inventorySave.json"))
 
-        #Currency loading from inventory save
-        self.money = self.inventorySave["money"]
-
         #All fish names without suffix .png
         self.originalFishNames = [imgName.removesuffix(".png") for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
 
-        #Loading inventory
+        #Loading fish inventory from inventory save
         self.fishInventoryDict = self.inventorySave["inventory"]
-
-        #Counting capacity filled
-        self.maxCapacity = 10
-        self.capacity = 0
-        for name in self.originalFishNames:
-            if self.fishInventoryDict[name] > 0:
-                self.capacity += self.fishInventoryDict[name]
 
         #Levels at which fishes spawn
         levelsJson = open("fishLevels.json")
@@ -333,10 +323,6 @@ class GameScreen(Screen):
         self.harborText = self.harborFont.render("Harbor", False, (255,255,255)).convert_alpha()
 
         self.silonText = self.harborFont.render("Out of line", False, [255,255,255])
-
-        self.moneyText = self.font.render(f'{self.money}¢', False, [227,188,15])
-
-        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
 
     def initImg(self):
         ###################
@@ -371,12 +357,7 @@ class GameScreen(Screen):
 
         #Harbor image
         self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
-
-        #Background for money text
-        self.moneyBar = load_image("img/moneyBar.png")
-
-        #Background for capacity text
-        self.capacityBar = load_image("img/moneyBar.png")
+        
 
     def initCalcParams(self):
         ###################
@@ -438,10 +419,6 @@ class GameScreen(Screen):
         #Check for out of silon
         self.outOfSilon = False
 
-        #Rect for money/capacity text background bar
-        self.moneyRect = self.moneyBar.get_rect()
-        self.capacityRect = self.capacityBar.get_rect()
-
         #Rect as scare radius
         self.scareRadius = pygame.Rect(0, 0, 200, 200)
 
@@ -493,6 +470,12 @@ class GameScreen(Screen):
 
         self.fishInventory = FishInventory()
 
+        self.moneyVisual = MoneyVisual()
+        self.moneyVisual.initData(self.inventorySave["money"])
+
+        self.capacityVisual = CapacityVisual()
+        self.capacityVisual.initData(self.originalFishNames, self.fishInventoryDict)
+
     ##########
     #Game updating
     ##########
@@ -518,20 +501,12 @@ class GameScreen(Screen):
             self.boat.update(self.isFishing)
 
     def update(self):
+        #########
+        #Updating Game Screen
+        #########
+
+        #Current camera position
         self.currentCameraPos = [self.defaultBoatX + self.screenPos[0], 0]
-
-        moneyTextCont = self.money
-        if self.money > 1000000:
-            moneyTextCont = str(int(self.money/1000000*10)/10) + "M"
-        elif self.money > 1000:
-            moneyTextCont = str(int(self.money/1000*10)/10) + "K"
-        self.moneyText = self.font.render(f'{moneyTextCont}¢', False, [227,188,15])
-        self.moneyRect = self.moneyBar.get_rect()
-        self.moneyRect.topleft = [-self.screenPos[0] + 10, -self.screenPos[1] + 10]
-
-        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
-        self.capacityRect = self.capacityBar.get_rect()
-        self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 45]
 
         anyFishDropping = True if (True in [fish.drop for fish in self.fishes]) else False
 
@@ -638,34 +613,23 @@ class GameScreen(Screen):
                 if self.screenPos[1] < 0:
                     self.screenPos[1] += 3
 
-
         try:
             self.water = pygame.Surface([WIDTH - self.screenPos[0], 162 - self.screenPos[1]])
         except:
             pass
 
-        # if screenY < -500:
-        #     self.water.fill((46,166,204))
-        # else:
-        #     self.water.fill((100,100,250))
-        # if screenY < -700:
-        #     self.water.fill((40,40,180))
         self.water.fill((46,166,204))
 
         self.waterRect = self.water.get_rect()
         self.waterRect.bottomleft = [0, HEIGHT - self.screenPos[1]]
-        # print(self.waterRect.w)
 
         if self.silonTextOpacity > 200:
             self.fade = -10
         elif self.silonTextOpacity < 50 and self.outOfSilon:
             self.fade = 10
-        
-        # print(self.silonTextOpacity)
 
         self.silonTextOpacity += self.fade
 
-        # self.silonTextRect.center = [WIDTH//2 - self.screenPos[0], HEIGHT//2 - self.screenPos[1] - 100]
         self.silonTextRect.center = (self.boat.baitRect.centerx, self.boat.baitRect.centery - 50)
         self.silonText.set_alpha(self.silonTextOpacity)
 
@@ -674,7 +638,6 @@ class GameScreen(Screen):
         for i, background in enumerate(self.backgrounds):
             if background[1].right > abs(currentScreen.screenPos[0]) and background[1].left < WIDTH + abs(currentScreen.screenPos[0]) and background[1].bottom > abs(currentScreen.screenPos[1]) and background[1].top < HEIGHT + abs(currentScreen.screenPos[1]):
                 self.gameScreenS.blit(background[0], background[1])
-                # print("BLITTING BACKGROUND", i)
 
         self.reflectionSurfRect.topleft = [-self.screenPos[0]-2,self.waterRect.y + self.boat.staticRect.h/6]
 
@@ -685,7 +648,6 @@ class GameScreen(Screen):
         for i, bgR in enumerate(self.backgroundReflections):
             bgR.set_alpha(self.bgReflectionAlpha)
             self.water.blit(bgR, [WIDTH*i,-160])
-        # self.gameScreenS.blit(waterReflectionSurf, self.waterRect)
         self.gameScreenS.blit(self.water, self.waterRect)
 
         fishUpdateThread = threading.Thread(target=self.updateFish)
@@ -694,8 +656,6 @@ class GameScreen(Screen):
 
         boatThread.start()
         fishUpdateThread.start()
-
-        # print(len(threading.enumerate()))
         
         boatThread.join()
         fishDrawThread.start()
@@ -721,7 +681,6 @@ class GameScreen(Screen):
                 self.reflectionSurfAlpha -= 13
             if self.bgReflectionAlpha > 0:
                 self.bgReflectionAlpha -= 4
-        # print(self.reflectionSurfAlpha)
 
         boatReflection = pygame.transform.flip(self.boat.imageR, False, True)
 
@@ -739,30 +698,18 @@ class GameScreen(Screen):
 
         self.gameScreenS.blit(self.harbor, self.harborRect)
         screenS.blit(self.shops, self.shopsRect)
-        # self.gameScreenS.blit(self.text, [0,0])
-        if not (self.transition or self.showingShops):
-            self.gameScreenS.blit(self.moneyBar, self.moneyRect)
-            moneyTextPos = self.moneyRect.center
-            moneyTextRect = self.moneyText.get_rect()
-            moneyTextRect.center = moneyTextPos
-            moneyTextRect.left += 2
-            self.gameScreenS.blit(self.moneyText, moneyTextRect)
-
-        self.capacityRect.top += 5
-        self.gameScreenS.blit(self.capacityBar, self.capacityRect)
-        capacityTextPos = self.capacityRect.center
-        capacityTextRect = self.capacityText.get_rect()
-        capacityTextRect.center = capacityTextPos
-        self.gameScreenS.blit(self.capacityText, capacityTextRect)
+        # if not (self.transition or self.showingShops):
+        #     self.gameScreenS.blit(self.moneyBar, self.moneyRect)
+        #     moneyTextPos = self.moneyRect.center
+        #     moneyTextRect = self.moneyText.get_rect()
+        #     moneyTextRect.center = moneyTextPos
+        #     moneyTextRect.left += 2
+        #     self.gameScreenS.blit(self.moneyText, moneyTextRect)
 
         self.harborText.set_alpha(self.harborTextOpacity)
         if self.harborTextOpacity > 0:
             self.gameScreenS.blit(self.harborText, self.harborTextRect)
 
-        # print(self.screenPos, self.boat.x)
-        
-        # if self.screenPos[0] + WIDTH >= WIDTH:
-        # print("-",self.boat.rect.centerx, "+", WIDTH, "=", -self.boat.staticRect.centerx + WIDTH)
         if -self.boat.staticRect.centerx + WIDTH >= WIDTH//2:
             self.leftPressed = False
             if self.isFishing and self.boat.baitX > 1:
@@ -810,27 +757,24 @@ class GameScreen(Screen):
 
         self.screenPos[1] += self.directionY * self.cameraSpeed
 
-        # screenS.blit(self.block, self.blockRect)
-
         self.fishShowingCount = 0
-        # print(self.fishShowingCount, self.totalFishAmount)
 
         if self.isFishing and self.silonTextOpacity > 5:
             self.gameScreenS.blit(self.silonText, self.silonTextRect)
         else:
             self.silonTextOpacity = 0
-
-        # screenS.blit(self.water2, self.water2Rect)
         
         if self.fishInventoryShow:
             self.fishInventory.update()
 
-        # pygame.draw.rect(self.gameScreenS, [255,0,0], self.scareRadius)
+        self.moneyVisual.draw()
+
+        self.capacityVisual.draw()
 
         screenS.blit(self.gameScreenS, self.gsPos)
 
-        if self.transition or self.showingShops:
-            screenS.blit(self.moneyText, self.moneyRect)
+        # if self.transition or self.showingShops:
+        #     screenS.blit(self.moneyText, self.moneyRect)
 
     def keyDown(self, key):
         if not self.boat.throwingBait and (not self.transition and not self.showingShops):
@@ -917,6 +861,107 @@ class GameScreen(Screen):
         if self.fishInventoryShow:
             self.fishInventory.scroll(e)
 
+class MoneyVisual:
+    def __init__(self):
+        #########
+        #Initializing font, money value and money bar img
+        #########
+
+        self.font = pygame.font.Font("font/pixelFont.ttf", 20)
+
+        self.moneyBar = load_image("img/moneyBar.png")
+        self.moneyRect = self.moneyBar.get_rect()
+
+    def initData(self, money):
+        ########
+        #Loading money and formatting it
+        ########
+
+        self.money = money        
+    
+        self.formattedText = self.money
+        self.formatMoney()
+
+    def add(self, amount):
+        #########
+        #Adding parameter amount to money
+        #########
+
+        self.money += amount
+        self.formatMoney()
+
+    def remove(self, amount):
+        #########
+        #Removing parameter amount from money
+        #########
+
+        self.money -= amount
+        self.formatMoney()
+
+    def formatMoney(self):
+        #########
+        #Formating money for rendering
+        #########
+
+        if self.money > 1000000:
+            self.formattedText = str(int(self.money/1000000*10)/10) + "M"
+        elif self.money > 1000:
+            self.formattedText = str(int(self.money/1000*10)/10) + "K"
+        
+        self.updateText()
+
+    def updateText(self):
+        #########
+        #Updating money text after formatting
+        #########
+
+        self.moneyText = self.font.render(f'{self.formattedText}¢', False, [227,188,15])
+
+    def draw(self):
+        #########
+        #Positioning and rendering money bar and money text
+        #########
+
+        self.moneyRect.topleft = [-currentScreen.screenPos[0] + 10, -currentScreen.screenPos[1] + 10]
+
+        currentScreen.gameScreenS.blit(self.moneyBar, self.moneyRect)
+        moneyTextPos = self.moneyRect.center
+        moneyTextRect = self.moneyText.get_rect()
+        moneyTextRect.center = moneyTextPos
+        moneyTextRect.left += 2
+        currentScreen.gameScreenS.blit(self.moneyText, moneyTextRect)
+
+class CapacityVisual:
+    def __init__(self):
+        self.font = pygame.font.Font("font/pixelFont.ttf", 20)
+
+        self.capacityBar = load_image("img/moneyBar.png")
+        self.capacityRect = self.capacityBar.get_rect()
+
+        self.maxCapacity = 10
+        self.capacity = 0
+
+    def initData(self, originalFishNames, fishInventoryDict):
+        for name in originalFishNames:
+            if fishInventoryDict[name] > 0:
+                self.capacity += fishInventoryDict[name]
+
+        self.updateText()
+
+    def updateText(self):
+        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
+
+    def draw(self):
+        self.capacityRect.topleft = [-currentScreen.screenPos[0] + 10,-currentScreen.screenPos[1] + 45]
+
+        self.capacityRect.top += 5
+        currentScreen.gameScreenS.blit(self.capacityBar, self.capacityRect)
+        capacityTextPos = self.capacityRect.center
+        capacityTextRect = self.capacityText.get_rect()
+        capacityTextRect.center = capacityTextPos
+        currentScreen.gameScreenS.blit(self.capacityText, capacityTextRect)
+        
+        
 
 class WaterSplash:
     def __init__(self, pos = [100,100], sizeX = -1, sizeY = -1):
@@ -1385,7 +1430,6 @@ class Boat:
                 elif self.rollBack:
                     self.rollBack = False
 
-
 class FishInventory:
     def __init__(self):
         global currentScreen
@@ -1426,7 +1470,7 @@ class FishInventory:
             name = self.items[collide].rawName.removesuffix(".png")
             if currentScreen.fishInventoryDict[name] > 0:
                 currentScreen.fishInventoryDict[name] -= 1
-                currentScreen.money += self.fishPrices[name]
+                currentScreen.moneyVisual.add(self.fishPrices[name])
                 currentScreen.capacity -= 1
     
     def scroll(self, direction):
@@ -1565,7 +1609,7 @@ while running:
                 with open("inventorySave.json", "w") as inventoryFile:
                     inventoryData = dict()
                     inventoryData["inventory"] = currentScreen.fishInventoryDict
-                    inventoryData["money"] = currentScreen.money
+                    inventoryData["money"] = currentScreen.moneyVisual.money
                     json.dump(inventoryData, inventoryFile)
 
                 with open("boatSave.json", "w") as boatFile:
