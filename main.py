@@ -237,103 +237,28 @@ class GameScreen(Screen):
         # Initializing GameScreen
         ###################
 
-        self.boat = Boat()
-
         self.region = "tatry"
+
+        self.maxCapacity = 10
+        self.capacity = 0
 
         self.endOfMap = 0
 
-        self.initData()
+        self.gameObjects()
 
-        self.screenPos = self.boatSave["screenPos"]
+        self.initData()
 
         self.initImg()
 
         self.initText()
 
-        self.endOfMap *= 2
+        self.initCalcParams()
 
-        self.gsPos = [0,0]
-
-        self.reflectionSurfRect = self.reflectionSurf.get_rect()
-        self.reflectionSurfRect.topleft = [0,0]
-
-
-        self.cameraOutOfBounds = False
-
-
-        self.maxCapacity = 10
-        self.capacity = 0
-
-        self.shopsRect = self.shops.get_rect()
-        self.shopsRect.topright = [0,0]
-        self.transition = 0
-        self.showingShops = False
-
-        self.waterRect = self.water.get_rect()
-        self.waterRect.bottomleft = [0, HEIGHT]
-
-        self.harborRect = self.harbor.get_rect()
-        self.harborRect.centery = self.waterRect.top - 20
-        self.harborRect.left = 0
-
-        self.harborTextOpacity = 0
-        self.harborText.set_alpha(self.harborTextOpacity)
-        self.harborTextRect = self.harborText.get_rect()
-        self.harborTextRect.center = [WIDTH//2, 150]
-
-        self.fishShowingCount = 0
+        self.gameParams()
 
         self.genFishes()
 
-
-        self.silonTextRect = self.silonText.get_rect()
-        self.silonTextRect.center = [WIDTH//2 + self.screenPos[0], HEIGHT//2 + self.screenPos[1]]
-        self.silonTextOpacity = 0
-        self.fade = 0
-        self.outOfSilon = False
-
-        self.directionX = 0
-        self.directionY = 0
-        self.cameraSpeed = 2
-        self.defaultBoatX = self.boat.x
-
-        self.leftPressed = False
-        self.rightPressed = False
-        self.downPressed = False
-        self.upPressed = False
-        self.usePressed = False
-
-        self.correctCameraPos = [self.defaultBoatX, 0]
-        self.currentCameraPos = [self.defaultBoatX + self.boat.x, 0]
-
-        self.isFishing = False
-        self.fishCollideIndex = -1
-
-        self.fishInventory = FishInventory()
-        self.fishInventoryShow = False
-
-
-
-        self.moneyRect = self.moneyBar.get_rect()
-        self.moneyRect.topleft = [10,10]
-
-        self.capacityBar = load_image("img/moneyBar.png")
-        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
-        self.capacityRect = self.capacityBar.get_rect()
-
-        self.scareRadius = pygame.Rect(0, 0, 200, 200)
-
-        self.setReflectionAlpha = 80
-        self.reflectionSurfAlpha = 255
-        self.reflectionAlpha = 80
-        self.bgReflectionAlpha = 80
-
-        self.backgroundReflections = []
-        for bg in self.backgrounds:
-            bgReflection = pygame.transform.flip(bg[0], False, True)
-            bgReflection.set_alpha(self.setReflectionAlpha)
-            self.backgroundReflections.append(bgReflection)
+        self.genBackgroundReflections()
 
     def genFishes(self):
         ###################
@@ -349,6 +274,17 @@ class GameScreen(Screen):
             self.totalFishAmount += 1
             self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
 
+    def genBackgroundReflections(self):
+        ###################
+        # Generating reflections on water of the background images
+        ###################
+
+        self.backgroundReflections = []
+        for bg in self.backgrounds:
+            bgReflection = pygame.transform.flip(bg[0], False, True)
+            bgReflection.set_alpha(self.setReflectionAlpha)
+            self.backgroundReflections.append(bgReflection)
+
     def initData(self):
         ###################
         # Data loader
@@ -357,8 +293,25 @@ class GameScreen(Screen):
         #Boat save file
         self.boatSave = json.load(open("boatSave.json"))
 
-        #Currency loading from inventory save file
-        self.money = json.load(open("inventorySave.json"))["money"]
+        #Screen position from boat save
+        self.screenPos = self.boatSave["screenPos"]
+
+        #Inventory save file
+        self.inventorySave = json.load(open("inventorySave.json"))
+
+        #Currency loading from inventory save
+        self.money = self.inventorySave["money"]
+
+        #All fish names without suffix .png
+        self.originalFishNames = [imgName.removesuffix(".png") for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
+
+        #Loading inventory
+        self.fishInventoryDict = self.inventorySave["inventory"]
+
+        #Counting capacity filled
+        for name in self.originalFishNames:
+            if self.fishInventoryDict[name] > 0:
+                self.capacity += self.fishInventoryDict[name]
 
         #Levels at which fishes spawn
         levelsJson = open("fishLevels.json")
@@ -368,17 +321,8 @@ class GameScreen(Screen):
         fishRarityJson = open("fishRarity.json")
         self.fishRarity = json.load(fishRarityJson)
 
-        #All fish names without suffix .png
-        self.originalFishNames = [imgName.removesuffix(".png") for imgName in os.listdir(f'img/{self.region}/fish') if imgName.endswith(".png")]
-        
         #Generating fish based on their rarity
         self.fishNames = genFishNamesForRarity(self.originalFishNames, self.fishRarity)
-
-        #Loading inventory
-        self.fishInventoryDict = json.load(open("inventorySave.json"))["inventory"]
-        for name in self.originalFishNames:
-            if self.fishInventoryDict[name] > 0:
-                self.capacity += self.fishInventoryDict[name]
 
     def initText(self):
         ###################
@@ -394,6 +338,8 @@ class GameScreen(Screen):
         self.silonText = self.harborFont.render("Out of line", False, [255,255,255])
 
         self.moneyText = self.font.render(f'{self.money}¢', False, [227,188,15])
+
+        self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
 
     def initImg(self):
         ###################
@@ -418,7 +364,6 @@ class GameScreen(Screen):
         self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(2)]
         for i in range(len(self.backgrounds)):
             self.backgrounds[i][1].topleft = [i*WIDTH, 0]
-            self.endOfMap += i*WIDTH
 
         #Water texture tile WORK IN PROGRESS!!!
         self.waterTexture = load_image('img/waterTexture.png')
@@ -433,6 +378,122 @@ class GameScreen(Screen):
         #Background for money text
         self.moneyBar = load_image("img/moneyBar.png")
 
+        #Background for capacity text
+        self.capacityBar = load_image("img/moneyBar.png")
+
+    def initCalcParams(self):
+        ###################
+        # Initializing variables and rects required for calculation and rendering
+        ###################
+
+        #Calculating end of map
+        for i in range(len(self.backgrounds)):
+            self.endOfMap += i*WIDTH
+        self.endOfMap *= 2
+
+        #Game screen positioning
+        self.gsPos = [0,0]
+
+        #Reflection rect and positioning
+        self.reflectionSurfRect = self.reflectionSurf.get_rect()
+        self.reflectionSurfRect.topleft = [0,0]
+
+        #Check for camera out of bounds
+        self.cameraOutOfBounds = False
+
+        #Rect for shop part of game and positioning
+        self.shopsRect = self.shops.get_rect()
+        self.shopsRect.topright = [0,0]
+
+        #Direction of transition between shop and fishing part of game
+        self.transition = 0
+
+        #Check for whether the player is viewing shop part or not
+        self.showingShops = False
+
+        #Rect for water and positioning
+        self.waterRect = self.water.get_rect()
+        self.waterRect.bottomleft = [0, HEIGHT]
+
+        #Rect for harbor and positioning
+        self.harborRect = self.harbor.get_rect()
+        self.harborRect.centery = self.waterRect.top - 20
+        self.harborRect.left = 0
+
+        #Rect for harbor text, positioning and opacity
+        self.harborTextOpacity = 0
+        self.harborText.set_alpha(self.harborTextOpacity)
+        self.harborTextRect = self.harborText.get_rect()
+        self.harborTextRect.center = [WIDTH//2, 150]
+
+        #Counter for amount of fish shown
+        self.fishShowingCount = 0
+
+        #Rect for "out of line" text and positioning
+        self.silonTextRect = self.silonText.get_rect()
+        self.silonTextRect.center = [WIDTH//2 + self.screenPos[0], HEIGHT//2 + self.screenPos[1]]
+        
+        #Silon text opacity and amount used for the transition
+        self.silonTextOpacity = 0
+        self.fade = 0
+
+        #Check for out of silon
+        self.outOfSilon = False
+
+        #Rect for money/capacity text background bar
+        self.moneyRect = self.moneyBar.get_rect()
+        self.capacityRect = self.capacityBar.get_rect()
+
+        #Rect as scare radius
+        self.scareRadius = pygame.Rect(0, 0, 200, 200)
+
+        #Reflection opacity variables
+        self.setReflectionAlpha = 80
+        self.reflectionSurfAlpha = 255
+        self.reflectionAlpha = 80
+        self.bgReflectionAlpha = 80
+
+    def gameParams(self):
+        ###################
+        # Parameters used for dynamic changes in game
+        ###################
+
+        #Parameters for camera direction and speed
+        self.directionX = 0
+        self.directionY = 0
+        self.cameraSpeed = 2
+
+        #Default boat X position
+        self.defaultBoatX = self.boat.x
+
+        #Camera position variables
+        self.correctCameraPos = [self.defaultBoatX, 0]
+        self.currentCameraPos = [self.defaultBoatX + self.boat.x, 0]
+
+        #Checks for key pressing
+        self.leftPressed = False #Key A
+        self.rightPressed = False #Key D
+        self.downPressed = False #Key S
+        self.upPressed = False #Key W
+        self.usePressed = False #Key E
+
+        #Check for fishing or moving mode
+        self.isFishing = False
+
+        #Index for checking if a fish collided with fish that's being pulled out
+        self.fishCollideIndex = -1
+
+        #Check for showing inventory
+        self.fishInventoryShow = False 
+
+    def gameObjects(self):
+        ###################
+        # Objects in game
+        ###################
+
+        self.boat = Boat()
+
+        self.fishInventory = FishInventory()
 
 
     def updateFish(self):
@@ -927,6 +988,8 @@ class Fish:
         self.levelRange = fishLevels[self.name]
         self.levelRange = [self.levelRange[0] * 100 + waterY, self.levelRange[1] * 100 + waterY]
         
+        
+
         self.rect = self.image.get_rect()
         self.hitBox = pygame.Surface((10*self.scale,10*self.scale))
         self.hitBoxRect = self.hitBox.get_rect()
@@ -936,7 +999,7 @@ class Fish:
         self.showFishHitBox = False
         self.showFishRect = False
 
-        self.x, self.y = random.randint(WIDTH//2, endOfMap), random.randint(self.levelRange[0], self.levelRange[1])
+        self.x, self.y = random.randint(WIDTH//2, endOfMap), random.uniform(self.levelRange[0], self.levelRange[1])
 
         self.rect.center = [self.x, self.y]
 
