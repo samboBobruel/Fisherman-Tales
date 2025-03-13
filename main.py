@@ -951,6 +951,14 @@ class CapacityVisual:
     def updateText(self):
         self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
 
+    def add(self):
+        self.capacity += 1
+        self.updateText()
+
+    def remove(self):
+        self.capacity -= 1
+        self.updateText()
+
     def draw(self):
         self.capacityRect.topleft = [-currentScreen.screenPos[0] + 10,-currentScreen.screenPos[1] + 45]
 
@@ -1411,7 +1419,7 @@ class Boat:
                 self.throwingBait = False
                 self.baitRect.center = self.defaultBaitPos.copy()
                 if self.caughtFish:
-                    if currentScreen.capacity < currentScreen.maxCapacity:
+                    if currentScreen.capacityVisual.capacity < currentScreen.capacityVisual.maxCapacity:
                         self.caughtFish = False
                         print(currentScreen.fishInventoryDict)
                         print(currentScreen.fishes[self.caughtFishIndex].name)
@@ -1420,7 +1428,7 @@ class Boat:
                         print(currentScreen.fishInventoryDict, currentScreen.totalFishAmount)
                         currentScreen.fishes.pop(self.caughtFishIndex)
                         self.caughtFishIndex = -1
-                        currentScreen.capacity += 1
+                        currentScreen.capacityVisual.add()
                     else:
                         self.caughtFish = False
                         currentScreen.fishes[self.caughtFishIndex].drop = True
@@ -1471,7 +1479,7 @@ class FishInventory:
             if currentScreen.fishInventoryDict[name] > 0:
                 currentScreen.fishInventoryDict[name] -= 1
                 currentScreen.moneyVisual.add(self.fishPrices[name])
-                currentScreen.capacity -= 1
+                currentScreen.capacityVisual.remove()
     
     def scroll(self, direction):
         if direction == 1:
