@@ -239,11 +239,6 @@ class GameScreen(Screen):
 
         self.region = "tatry"
 
-        self.maxCapacity = 10
-        self.capacity = 0
-
-        self.endOfMap = 0
-
         self.gameObjects()
 
         self.initData()
@@ -309,6 +304,8 @@ class GameScreen(Screen):
         self.fishInventoryDict = self.inventorySave["inventory"]
 
         #Counting capacity filled
+        self.maxCapacity = 10
+        self.capacity = 0
         for name in self.originalFishNames:
             if self.fishInventoryDict[name] > 0:
                 self.capacity += self.fishInventoryDict[name]
@@ -387,6 +384,7 @@ class GameScreen(Screen):
         ###################
 
         #Calculating end of map
+        self.endOfMap = 0
         for i in range(len(self.backgrounds)):
             self.endOfMap += i*WIDTH
         self.endOfMap *= 2
@@ -495,11 +493,13 @@ class GameScreen(Screen):
 
         self.fishInventory = FishInventory()
 
+    ##########
+    #Game updating
+    ##########
 
     def updateFish(self):
         for i, fish in enumerate(self.fishes):
             fish.update()
-            # print(gc.collect())
 
     def drawFish(self):
         for fish in self.fishes:
@@ -510,7 +510,6 @@ class GameScreen(Screen):
                     fish.draw()
             elif fish.caught:
                 fish.draw()
-        # print("Updated fishes!")
 
     def updateBoat(self):
         if self.isFishing:
@@ -518,18 +517,7 @@ class GameScreen(Screen):
         else:
             self.boat.update(self.isFishing)
 
-
     def update(self):
-        # print(self.totalFishAmount)
-
-        # print(clock.get_fps())
-
-        # if not self.fishThreadStarted:
-            # self.fishThreadStarted = True
-
-        # if self.fishThread.is_started:
-            # self.fishThread.join()
-
         self.currentCameraPos = [self.defaultBoatX + self.screenPos[0], 0]
 
         moneyTextCont = self.money
@@ -544,13 +532,6 @@ class GameScreen(Screen):
         self.capacityText = self.font.render(f'{self.capacity}/{self.maxCapacity}', False, [227,188,15])
         self.capacityRect = self.capacityBar.get_rect()
         self.capacityRect.topleft = [-self.screenPos[0] + 10,-self.screenPos[1] + 45]
-
-        # print(clock.get_fps())
-
-        # self.background = pygame.Surface([WIDTH - self.screenPos[0], HEIGHT])
-        # self.background.fill((100,150,100))
-
-        # print(self.usePressed)
 
         anyFishDropping = True if (True in [fish.drop for fish in self.fishes]) else False
 
@@ -576,8 +557,6 @@ class GameScreen(Screen):
                         
 
                         self.fishes[self.fishCollideIndex].scared = False
-                    
-                    # print("CAUGHT!!!")
 
         if self.isFishing:
             if not self.cameraOutOfBounds:
@@ -596,7 +575,6 @@ class GameScreen(Screen):
             if not self.boat.dockedIn:
                 self.boat.dockedIn = True
                 self.usePressed = False
-            # self.usePressed = False
             if self.harborTextOpacity < 255:
                 self.harborTextOpacity += 5
             else:
@@ -608,7 +586,6 @@ class GameScreen(Screen):
                     self.fishes.remove(fish)
                     print(gc.collect())
                     self.totalFishAmount -= 1
-                    # self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap))
         
         if self.totalFishAmount < self.fishAmount and not self.boat.caughtFish and self.fishCollideIndex == -1:
             self.totalFishAmount += 1
@@ -630,7 +607,6 @@ class GameScreen(Screen):
 
         self.gsPos[0] += 3 * self.transition
         self.shopsRect.right += 3 * self.transition
-        # print(self.gsPos[0], WIDTH)
         if self.gsPos[0] >= WIDTH:
             self.gsPos[0] = WIDTH
             self.shopsRect.right = WIDTH
@@ -646,7 +622,6 @@ class GameScreen(Screen):
 
         if not self.isFishing:
             if (not equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 3) and self.directionX == 0):
-                # print("SC")
                 if -self.screenPos[0] + WIDTH//2 > self.boat.staticRect.centerx:
                     self.screenPos[0] += 3
                 else:
@@ -657,8 +632,6 @@ class GameScreen(Screen):
                         self.screenPos[1] += 3
                     else:
                         self.screenPos[1] -= 3
-                    # print(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx)
-                    # self.screenPos[0] += 1
                 elif equalPlusMinus(-self.screenPos[0] + WIDTH//2, self.boat.staticRect.centerx, 10) and self.directionX == 0:
                     self.screenPos[0] = -(self.boat.staticRect.centerx - WIDTH//2)
             else:
@@ -667,7 +640,6 @@ class GameScreen(Screen):
 
 
         try:
-            # print([WIDTH - self.screenPos[0], HEIGHT//4 - self.screenPos[1]])
             self.water = pygame.Surface([WIDTH - self.screenPos[0], 162 - self.screenPos[1]])
         except:
             pass
