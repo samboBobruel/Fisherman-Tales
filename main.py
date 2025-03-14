@@ -492,6 +492,8 @@ class GameScreen(Screen):
 
         self.dockingHandler = DockingHandler()
 
+        self.fishHandler = FishHandler()
+
     ##########
     #Game updation functions 
     ##########
@@ -530,27 +532,20 @@ class GameScreen(Screen):
         if self.isFishing and not anyFishDropping:
             self.boat.checkFishCollisions()
 
+        #Camera control while fishing
         if self.isFishing:
             self.camera.checkCameraBounds()
 
+        #Handling docking
         self.dockingHandler.checkDocking()
-        
         if self.boat.dockedIn:
             self.dockingHandler.handleDockingTransition()
 
+        #^^^^^^^^^^^^^^^^^^^^^^^^^^^^ DONE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-        if not self.boat.caughtFish:
-            for fish in self.fishes:
-                if fish.rect.right < 0 or fish.rect.left > self.endOfMap:
-                    self.fishes.remove(fish)
-                    print(gc.collect())
-                    self.totalFishAmount -= 1
+        self.fishHandler.outOfBound()
         
-        if self.totalFishAmount < self.fishAmount and not self.boat.caughtFish and self.fishCollideIndex == -1:
-            self.totalFishAmount += 1
-            self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
-
-
+        self.fishHandler.keepEnoughFish()
 
         if not self.isFishing:
             if (not equalPlusMinus(-self.camera.pos[0] + WIDTH//2, self.boat.staticRect.centerx, 3) and self.camera.dirX == 0):
@@ -889,7 +884,6 @@ class HarborTextVisual:
 
         if self.textOpacity > 0:
             currentScreen.gameScreenS.blit(self.text, self.rect)
-
 
 class MoneyVisual:
     def __init__(self):
@@ -1592,6 +1586,45 @@ class DockingHandler:
             currentScreen.transition = 0
             currentScreen.usePressed = False
             currentScreen.showingShops = False
+
+class FishHandler:
+    def spawnFish(self):
+        #############
+        #Spawn a random fish
+        #############
+
+        currentScreen.fishes.append(Fish(currentScreen.region, currentScreen.fishLevels, currentScreen.waterRect.top, currentScreen.endOfMap, currentScreen.fishNames))
+        currentScreen.totalFishAmount += 1
+
+    def deleteFish(self, fish : Fish):
+        #############
+        #Delete a fish
+        #############
+
+        currentScreen.fishes.remove()
+        currentScreen.totalFishAmount -= 1
+
+    def outOfBound(self):
+        ############
+        #Handler for checking and removing fishes if they are out of the map
+        ############
+
+        if currentScreen.boat.caughtFish:
+            return
+        for fish in currentScreen.fishes:
+            if fish.rect.right < 0 or fish.rect.left > currentScreen.endOfMap:
+                self.remove(fish)
+                gc.collect()
+
+    def keepEnoughFish(self):
+        ###########
+        #Handler for keeping enough fish in map
+        ###########
+        
+        if currentScreen.totalFishAmount >= currentScreen.fishAmount or currentScreen.boat.caughtFish or currentScreen.fishCollideIndex != -1:
+            return
+        
+        self.spawnFish()
 
 
 class FishInventory:
