@@ -533,37 +533,21 @@ class GameScreen(Screen):
             self.boat.checkFishCollisions()
 
         #Camera control while fishing
-        if self.isFishing:
-            self.camera.checkCameraBounds()
+        self.camera.checkCameraBoundsWhileFishing()
+
+        #Fixing camera centering while not fishing
+        self.camera.fixCameraCentering()
 
         #Handling docking
         self.dockingHandler.checkDocking()
         if self.boat.dockedIn:
             self.dockingHandler.handleDockingTransition()
 
-        #^^^^^^^^^^^^^^^^^^^^^^^^^^^^ DONE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
         self.fishHandler.outOfBound()
         
         self.fishHandler.keepEnoughFish()
 
-        if not self.isFishing:
-            if (not equalPlusMinus(-self.camera.pos[0] + WIDTH//2, self.boat.staticRect.centerx, 3) and self.camera.dirX == 0):
-                if -self.camera.pos[0] + WIDTH//2 > self.boat.staticRect.centerx:
-                    self.camera.pos[0] += 3
-                else:
-                    self.camera.pos[0] -= 3
-            if not self.boat.dockedIn:
-                if not equalPlusMinus(-self.camera.pos[1] + HEIGHT//2, self.boat.staticRect.centery - 138, 3) and self.camera.dirY == 0:
-                    if -self.camera.pos[1] + HEIGHT//2 > self.boat.staticRect.centery - 138:
-                        self.camera.pos[1] += 3
-                    else:
-                        self.camera.pos[1] -= 3
-                elif equalPlusMinus(-self.camera.pos[0] + WIDTH//2, self.boat.staticRect.centerx, 10) and self.camera.dirX == 0:
-                    self.camera.pos[0] = -(self.boat.staticRect.centerx - WIDTH//2)
-            else:
-                if self.camera.pos[1] < 0:
-                    self.camera.pos[1] += 3
+        #^^^^^^^^^^^^^^^^^^^^^^^^^^^^ DONE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
         try:
             self.water = pygame.Surface([WIDTH - self.camera.pos[0], 162 - self.camera.pos[1]])
@@ -809,6 +793,11 @@ class GameScreen(Screen):
 
 class Camera:
     def __init__(self, pos):
+        ############
+        #Variables for camera positioning and movement
+        ############
+
+
         self.dirX = 0
         self.dirY = 0
         self.speed = 2
@@ -816,19 +805,55 @@ class Camera:
         self.cameraOutOfBounds = False
 
     def ensureCameraBounds(self):
+        ############
+        #Ensure that camera doesn't go out of map
+        ############
+
         if self.cameraOutOfBounds:
             self.pos[0] = -(currentScreen.endOfMap - WIDTH)
         else:
             self.pos[0] = -currentScreen.boat.baitRect.centerx + WIDTH//2
         self.pos[1] = -currentScreen.boat.baitRect.centery + HEIGHT//2
 
-    def checkCameraBounds(self):
+    def checkCameraBoundsWhileFishing(self):
+        ############
+        #Check if camera is going out of bounds
+        ############
+
+        if not currentScreen.isFishing:
+            return
         if currentScreen.boat.baitRect.centerx + WIDTH//2 > currentScreen.endOfMap:
             self.cameraOutOfBounds = True
         elif currentScreen.boat.baitRect.centerx + WIDTH//2 < currentScreen.endOfMap:
             self.cameraOutOfBounds = False
 
         self.ensureCameraBounds()
+
+    def fixCameraCentering(self):
+        #############
+        #Fixing camera centering while not fishing
+        #############
+
+        if currentScreen.isFishing:
+            return
+
+        if (not equalPlusMinus(-self.pos[0] + WIDTH//2, currentScreen.boat.staticRect.centerx, 3) and self.dirX == 0):
+            if -self.pos[0] + WIDTH//2 > currentScreen.boat.staticRect.centerx:
+                self.pos[0] += 3
+            else:
+                self.pos[0] -= 3
+        if not currentScreen.boat.dockedIn:
+            if not equalPlusMinus(-self.pos[1] + HEIGHT//2, currentScreen.boat.staticRect.centery - 138, 3) and self.dirY == 0:
+                if -self.pos[1] + HEIGHT//2 > currentScreen.boat.staticRect.centery - 138:
+                    self.pos[1] += 3
+                else:
+                    self.pos[1] -= 3
+            elif equalPlusMinus(-self.pos[0] + WIDTH//2, currentScreen.boat.staticRect.centerx, 10) and self.dirX == 0:
+                self.pos[0] = -(currentScreen.boat.staticRect.centerx - WIDTH//2)
+        else:
+            if self.pos[1] < 0:
+                self.pos[1] += 3
+
 
 class HarborTextVisual:
     def __init__(self):
@@ -1620,12 +1645,11 @@ class FishHandler:
         ###########
         #Handler for keeping enough fish in map
         ###########
-        
+
         if currentScreen.totalFishAmount >= currentScreen.fishAmount or currentScreen.boat.caughtFish or currentScreen.fishCollideIndex != -1:
             return
         
         self.spawnFish()
-
 
 class FishInventory:
     def __init__(self):
