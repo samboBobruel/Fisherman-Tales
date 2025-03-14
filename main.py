@@ -549,10 +549,7 @@ class GameScreen(Screen):
 
         #^^^^^^^^^^^^^^^^^^^^^^^^^^^^ DONE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-        try:
-            self.water = pygame.Surface([WIDTH - self.camera.pos[0], 162 - self.camera.pos[1]])
-        except:
-            pass
+        self.water = pygame.Surface([WIDTH - self.camera.pos[0], 162 - self.camera.pos[1]])
 
         self.water.fill((46,166,204))
 
@@ -853,7 +850,6 @@ class Camera:
         else:
             if self.pos[1] < 0:
                 self.pos[1] += 3
-
 
 class HarborTextVisual:
     def __init__(self):
@@ -1189,14 +1185,6 @@ class Fish:
 
             # if self.rect.right > abs(currentScreen.camera.pos[0]) and self.rect.left < WIDTH + abs(currentScreen.camera.pos[0]) and self.rect.bottom > abs(currentScreen.camera.pos[1]) and self.rect.top < HEIGHT + abs(currentScreen.camera.pos[1]):
             # print(self.rect.left, WIDTH + abs(currentScreen.camera.pos[0]))
-            if self.rect.right < 0 or self.rect.left > currentScreen.endOfMap:
-                if not currentScreen.boat.caughtFish:
-                    currentScreen.fishes.remove(self)
-                    print(gc.collect())
-                    currentScreen.totalFishAmount -= 1
-                    print("NOT CAUGHT FISH, FISH REMOVED")
-                else:
-                    print("TRIED TO REMOVE FISH, FISH CAUGHT")
                 
 
         self.hitBoxRect.centerx = self.rect.centerx + self.rect.width//2*self.direction
@@ -1626,7 +1614,7 @@ class FishHandler:
         #Delete a fish
         #############
 
-        currentScreen.fishes.remove()
+        currentScreen.fishes.remove(fish)
         currentScreen.totalFishAmount -= 1
 
     def outOfBound(self):
@@ -1638,7 +1626,7 @@ class FishHandler:
             return
         for fish in currentScreen.fishes:
             if fish.rect.right < 0 or fish.rect.left > currentScreen.endOfMap:
-                self.remove(fish)
+                self.deleteFish(fish)
                 gc.collect()
 
     def keepEnoughFish(self):
