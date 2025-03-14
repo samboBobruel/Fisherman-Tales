@@ -77,6 +77,11 @@ class Screen:
         pass
 
 class MenuScreen(Screen):
+
+    ##########
+    #Initialazation functions
+    ##########
+
     def __init__(self):
         self.screenPos = [0,0]
 
@@ -125,6 +130,10 @@ class MenuScreen(Screen):
         self.gFRect.top = self.gY
         ###################
 
+    ##########
+    #Button functions
+    ##########
+
     def startButtonFunction(self):
         ###################
         # Changing screen to game screen after clicking startButton
@@ -141,6 +150,10 @@ class MenuScreen(Screen):
         global currentScreen
         currentScreen = optionsScreen
 
+    ##########
+    #Link functions
+    ##########
+
     def redirectToInstagram(self):
         ###################
         # Redirecting user to instagram page
@@ -156,6 +169,10 @@ class MenuScreen(Screen):
 
         global TWITTER_LINK
         webbrowser.open(TWITTER_LINK)
+
+    ##########
+    #Mouse functions
+    ##########
 
     def mouseButtonDown(self):
         ###################
@@ -179,6 +196,10 @@ class MenuScreen(Screen):
 
         self.easterEggClick()
 
+    ##########
+    #Easter egg functions
+    ##########
+
     def easterEggClick(self):
         ###################
         # Trigger for easter egg
@@ -201,6 +222,10 @@ class MenuScreen(Screen):
         screenS.blit(self.guyFallingR, [self.gX, self.gY])
         if self.gY > HEIGHT:
             self.guyFall = False
+
+    ##########
+    #Updation function
+    ##########
 
     def update(self):
         ###################
@@ -232,6 +257,11 @@ class OptionsScreen(Screen):
         screenS.blit(self.text, [0,0])
 
 class GameScreen(Screen):
+
+    ##########
+    #Initialazation functions
+    ##########
+
     def __init__(self):
         ###################
         # Initializing GameScreen
@@ -358,7 +388,6 @@ class GameScreen(Screen):
         #Harbor image
         self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
         
-
     def initCalcParams(self):
         ###################
         # Initializing variables and rects required for calculation and rendering
@@ -419,9 +448,6 @@ class GameScreen(Screen):
         #Check for out of silon
         self.outOfSilon = False
 
-        #Rect as scare radius
-        self.scareRadius = pygame.Rect(0, 0, 200, 200)
-
         #Reflection opacity variables
         self.setReflectionAlpha = 80
         self.reflectionSurfAlpha = 255
@@ -477,7 +503,7 @@ class GameScreen(Screen):
         self.capacityVisual.initData(self.originalFishNames, self.fishInventoryDict)
 
     ##########
-    #Game updating
+    #Game updation functions 
     ##########
 
     def updateFish(self):
@@ -510,28 +536,9 @@ class GameScreen(Screen):
 
         anyFishDropping = True if (True in [fish.drop for fish in self.fishes]) else False
 
-        if self.isFishing:
-            if not anyFishDropping:
-                if not self.boat.caughtFish:
-                    self.fishCollideIndex = self.boat.baitRect.collidelist([fish.hitBoxRect for fish in self.fishes])
-                if self.fishCollideIndex != -1:
-                    if self.boat.caughtFishIndex == -1:
-                        self.boat.caughtFishIndex = self.fishCollideIndex
-                    if self.boat.caughtFishIndex == self.fishCollideIndex:                    
-                        self.fishes[self.fishCollideIndex].caught = True
-                        self.fishes[self.fishCollideIndex].baitPos = self.boat.baitRect.center
-                        self.boat.caughtFish = True
-                        self.boat.gotoPos = self.boat.defaultBaitPos.copy()
-                        self.boat.fromPos = list(self.boat.baitRect.center)
-
-                        self.scareRadius = pygame.Rect(0, 0, 400, 300)
-                        self.scareRadius.center = self.fishes[self.fishCollideIndex].rect.center
-                        for fishIndex in self.scareRadius.collidelistall([fish.hitBoxRect for fish in self.fishes]):
-                            if fishIndex != self.fishCollideIndex:
-                                self.fishes[fishIndex].scare(self.fishes[self.fishCollideIndex].rect)
-                        
-
-                        self.fishes[self.fishCollideIndex].scared = False
+        #Check if you're fishing and there are no falling fishes
+        if self.isFishing and not anyFishDropping:
+            self.boat.checkFishCollisions()
 
         if self.isFishing:
             if not self.cameraOutOfBounds:
@@ -1262,6 +1269,8 @@ class Boat:
 
         self.dockedIn = False
 
+        self.scareRadius = pygame.Rect(0, 0, 400, 300)
+
     def update(self, isFishing, baitSpeed = 0):
         self.defaultY = currentScreen.waterRect.top + 200
 
@@ -1437,6 +1446,68 @@ class Boat:
                         currentScreen.boat.caughtFish = False
                 elif self.rollBack:
                     self.rollBack = False
+
+    def checkFishCollisions(self):
+            #########
+            #Handler of collision between bait and fish hit boxes
+            #########
+
+            #Check if you aren't catching already another fish
+            if not self.caughtFish:
+                self.fishCollideIndex = self.baitRect.collidelist([fish.hitBoxRect for fish in currentScreen.fishes])
+
+            #If a fish is caught - continue
+            if self.fishCollideIndex != -1:
+
+                #If caughtFishIndex is null, set to index of fish caught
+                if self.caughtFishIndex == -1:
+                    self.caughtFishIndex = self.fishCollideIndex
+
+                #If it's already set, and it equals fishCollideIndex, catch the fish 
+                elif self.caughtFishIndex == self.fishCollideIndex:                    
+                    self.catchFish()
+
+    def catchFish(self):
+        ########
+        #Handler of catching fish
+        ########
+
+        #Set the fish that it has been caught
+        currentScreen.fishes[self.fishCollideIndex].caught = True
+
+        #Set fish's position to bait's position
+        currentScreen.fishes[self.fishCollideIndex].baitPos = self.baitRect.center
+
+        #Set the boat that it has caught a fish
+        self.caughtFish = True
+
+        #Set position towards which the fish and bait will go
+        self.gotoPos = self.defaultBaitPos.copy()
+
+        #Seperate position from baitRect.center
+        self.fromPos = list(self.baitRect.center)
+
+        #Scare the other fishes once the fish is caught
+        self.scareFish()
+
+    def scareFish(self):
+        ########
+        #Handler for scaring surrounding fishes
+        ########
+
+        #Positioning scare rect to the fish's position
+        self.scareRadius.center = currentScreen.fishes[self.fishCollideIndex].rect.center
+
+        #Check if fishes collide with the scare rect
+        for fishIndex in self.scareRadius.collidelistall([fish.hitBoxRect for fish in currentScreen.fishes]):
+
+            #If they do, call the scare function in fish
+            if fishIndex != self.fishCollideIndex:
+                currentScreen.fishes[fishIndex].scare(currentScreen.fishes[currentScreen.fishCollideIndex].rect)
+        
+        #Exclude the fish caught from scaring
+        currentScreen.fishes[self.fishCollideIndex].scared = False
+
 
 class FishInventory:
     def __init__(self):
