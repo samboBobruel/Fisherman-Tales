@@ -297,7 +297,7 @@ class GameScreen(Screen):
 
         for i in range(self.fishAmount):
             self.totalFishAmount += 1
-            self.fishes.append(Fish(self.region, self.fishLevels, self.waterRect.top, self.endOfMap, self.fishNames))
+            self.fishes.append(Fish(self.region, self.fishLevels, self.water.rect.top, self.endOfMap, self.fishNames))
 
     def genBackgroundReflections(self):
         ###################
@@ -307,7 +307,7 @@ class GameScreen(Screen):
         self.backgroundReflections = []
         for bg in self.backgrounds:
             bgReflection = pygame.transform.flip(bg[0], False, True)
-            bgReflection.set_alpha(self.setReflectionAlpha)
+            # bgReflection.set_alpha(self.setReflectionAlpha)
             self.backgroundReflections.append(bgReflection)
 
     def initData(self):
@@ -349,9 +349,6 @@ class GameScreen(Screen):
         self.font = pygame.font.Font("font/pixelFont.ttf", 20)
         self.text = self.font.render("GAME", False, [255,255,255])
 
-        self.silonFont = pygame.font.Font("font/pixelFont.ttf", 70)
-        self.silonText = self.silonFont.render("Out of line", False, [255,255,255])
-
     def initImg(self):
         ###################
         # Initializing images and surfaces
@@ -360,10 +357,6 @@ class GameScreen(Screen):
         #Main game surface. When turning to shops, it's changing gsPosition.
         self.gameScreenS = pygame.Surface((WIDTH, HEIGHT))
         # self.gameScreenS.set_alpha(0)
-
-        #Surface used to render reflections of objects like backgrounds, boat etc.
-        self.reflectionSurf = pygame.Surface((WIDTH + 4, HEIGHT//2))
-        self.reflectionSurf.fill((46,166,204))
 
         #Image containing shopping part of a specified region
         self.shops = load_image(f'img/{self.region}/backgrounds/obchody.png')
@@ -375,13 +368,6 @@ class GameScreen(Screen):
         self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(2)]
         for i in range(len(self.backgrounds)):
             self.backgrounds[i][1].topleft = [i*WIDTH, 0]
-
-        #Water texture tile WORK IN PROGRESS!!!
-        self.waterTexture = load_image('img/waterTexture.png')
-
-        #Water surface
-        self.water = pygame.Surface([WIDTH + self.camera.pos[0], 162], pygame.SRCALPHA)
-        self.water.fill((46,166,204))
 
         #Harbor image
         self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
@@ -400,10 +386,6 @@ class GameScreen(Screen):
         #Game screen positioning
         self.gsPos = [0,0]
 
-        #Reflection rect and positioning
-        self.reflectionSurfRect = self.reflectionSurf.get_rect()
-        self.reflectionSurfRect.topleft = [0,0]
-
         #Rect for shop part of game and positioning
         self.shopsRect = self.shops.get_rect()
         self.shopsRect.topright = [0,0]
@@ -414,34 +396,13 @@ class GameScreen(Screen):
         #Check for whether the player is viewing shop part or not
         self.showingShops = False
 
-        #Rect for water and positioning
-        self.waterRect = self.water.get_rect()
-        self.waterRect.bottomleft = [0, HEIGHT]
-
         #Rect for harbor and positioning
         self.harborRect = self.harbor.get_rect()
-        self.harborRect.centery = self.waterRect.top - 20
+        self.harborRect.centery = self.water.rect.top - 20
         self.harborRect.left = 0
 
         #Counter for amount of fish shown
         self.fishShowingCount = 0
-
-        #Rect for "out of line" text and positioning
-        self.silonTextRect = self.silonText.get_rect()
-        self.silonTextRect.center = [WIDTH//2 + self.camera.pos[0], HEIGHT//2 + self.camera.pos[1]]
-        
-        #Silon text opacity and amount used for the transition
-        self.silonTextOpacity = 0
-        self.fade = 0
-
-        #Check for out of silon
-        self.outOfSilon = False
-
-        #Reflection opacity variables
-        self.setReflectionAlpha = 80
-        self.reflectionSurfAlpha = 255
-        self.reflectionAlpha = 80
-        self.bgReflectionAlpha = 80
 
     def gameParams(self):
         ###################
@@ -494,9 +455,21 @@ class GameScreen(Screen):
 
         self.fishHandler = FishHandler()
 
+        self.water = Water()
+
+        self.silonVisual = SilonVisual()
+
     ##########
-    #Game updation functions 
+    #Updation functions 
     ##########
+
+    def updateScreen(self):
+        self.gameScreenS = pygame.Surface((WIDTH - self.camera.pos[0] + 2, HEIGHT - self.camera.pos[1]))
+
+    def bgRenderHandler(self):
+        for i, background in enumerate(self.backgrounds):
+            if background[1].right > abs(currentScreen.camera.pos[0]) and background[1].left < WIDTH + abs(currentScreen.camera.pos[0]) and background[1].bottom > abs(currentScreen.camera.pos[1]) and background[1].top < HEIGHT + abs(currentScreen.camera.pos[1]):
+                self.gameScreenS.blit(background[0], background[1])
 
     def updateFish(self):
         for i, fish in enumerate(self.fishes):
@@ -538,6 +511,10 @@ class GameScreen(Screen):
         #Fixing camera centering while not fishing
         self.camera.fixCameraCentering()
 
+        self.updateScreen()
+
+        self.bgRenderHandler()
+
         #Handling docking
         self.dockingHandler.checkDocking()
         if self.boat.dockedIn:
@@ -547,41 +524,16 @@ class GameScreen(Screen):
         
         self.fishHandler.keepEnoughFish()
 
+        self.silonVisual.update()
+
         #^^^^^^^^^^^^^^^^^^^^^^^^^^^^ DONE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-        self.water = pygame.Surface([WIDTH - self.camera.pos[0], 162 - self.camera.pos[1]])
-
-        self.water.fill((46,166,204))
-
-        self.waterRect = self.water.get_rect()
-        self.waterRect.bottomleft = [0, HEIGHT - self.camera.pos[1]]
-
-        if self.silonTextOpacity > 200:
-            self.fade = -10
-        elif self.silonTextOpacity < 50 and self.outOfSilon:
-            self.fade = 10
-
-        self.silonTextOpacity += self.fade
-
-        self.silonTextRect.center = (self.boat.baitRect.centerx, self.boat.baitRect.centery - 50)
-        self.silonText.set_alpha(self.silonTextOpacity)
-
-        self.gameScreenS = pygame.Surface((WIDTH - self.camera.pos[0] + 2, HEIGHT - self.camera.pos[1]))
-
-        for i, background in enumerate(self.backgrounds):
-            if background[1].right > abs(currentScreen.camera.pos[0]) and background[1].left < WIDTH + abs(currentScreen.camera.pos[0]) and background[1].bottom > abs(currentScreen.camera.pos[1]) and background[1].top < HEIGHT + abs(currentScreen.camera.pos[1]):
-                self.gameScreenS.blit(background[0], background[1])
-
-        self.reflectionSurfRect.topleft = [-self.camera.pos[0]-2,self.waterRect.y + self.boat.staticRect.h/6]
+        self.water.reflectionRect.topleft = [-self.camera.pos[0]-2,self.water.rect.y + self.boat.staticRect.h/6]
 
         if not self.isFishing and self.boat.wsFinished:
             self.boat.wsFinished = False
 
-
-        for i, bgR in enumerate(self.backgroundReflections):
-            bgR.set_alpha(self.bgReflectionAlpha)
-            self.water.blit(bgR, [WIDTH*i,-160])
-        self.gameScreenS.blit(self.water, self.waterRect)
+        self.water.renderBackgroundReflections()
 
         fishUpdateThread = threading.Thread(target=self.updateFish)
         fishDrawThread = threading.Thread(target=self.drawFish)
@@ -594,39 +546,34 @@ class GameScreen(Screen):
         fishDrawThread.start()
 
         if not boatThread.is_alive():
+            self.water.renderSurfaceReflections()
             fishUpdateThread.join()
             if not fishUpdateThread.is_alive():
                 fishDrawThread.join()
 
-        self.backgroundReflections = []
-        for bg in self.backgrounds:
-            bgReflection = pygame.transform.flip(bg[0], False, True)
-            bgReflection.set_alpha(self.setReflectionAlpha)
-            self.backgroundReflections.append(bgReflection)
+        self.water.adjustSurf()
+
+        # self.backgroundReflections = []
+        # for bg in self.backgrounds:
+        #     bgReflection = pygame.transform.flip(bg[0], False, True)
+        #     bgReflection.set_alpha(self.setReflectionAlpha)
+        #     self.backgroundReflections.append(bgReflection)
 
         if not self.isFishing or not self.boat.wsFinished:
-            if self.reflectionSurfAlpha < 255:
-                self.reflectionSurfAlpha += 13
-            if self.bgReflectionAlpha < self.setReflectionAlpha:
-                self.bgReflectionAlpha += 4
+            if self.water.reflectionSurfAlpha < 255:
+                self.water.reflectionSurfAlpha += 13
+                print("REFLECT")
+            if self.water.bgReflectionAlpha < self.water.setReflectionAlpha:
+                self.water.bgReflectionAlpha += 4
         else:
-            if self.reflectionSurfAlpha > 0:
-                self.reflectionSurfAlpha -= 13
-            if self.bgReflectionAlpha > 0:
-                self.bgReflectionAlpha -= 4
+            if self.water.reflectionSurfAlpha > 0:
+                self.water.reflectionSurfAlpha -= 13
+            if self.water.bgReflectionAlpha > 0:
+                self.water.bgReflectionAlpha -= 4
 
-        boatReflection = pygame.transform.flip(self.boat.imageR, False, True)
-
-        self.reflectionSurf.fill((46,166,204))
-        bgShowing = 0
-        for i, bgR in enumerate(self.backgroundReflections):
-            if i*WIDTH - WIDTH <= -self.camera.pos[0] or i*WIDTH >= -self.camera.pos[0]:
-                bgShowing += 1
-                bgR.blit(boatReflection, [self.boat.rect.left-WIDTH*i,160])
-                self.reflectionSurf.blit(bgR, [WIDTH*i + self.camera.pos[0] + 2, -185])
         
-        self.reflectionSurf.set_alpha(self.reflectionSurfAlpha)
-        self.gameScreenS.blit(self.reflectionSurf, self.reflectionSurfRect)
+
+
         
 
         self.gameScreenS.blit(self.harbor, self.harborRect)
@@ -697,6 +644,8 @@ class GameScreen(Screen):
         self.moneyVisual.draw()
 
         self.capacityVisual.draw()
+
+        self.silonVisual.draw()
 
         screenS.blit(self.gameScreenS, self.gsPos)
 
@@ -787,6 +736,70 @@ class GameScreen(Screen):
     def mouseScroll(self, e):
         if self.fishInventoryShow:
             self.fishInventory.scroll(e)
+
+class Water:
+    def __init__(self):
+        #Water texture tile WORK IN PROGRESS!!!
+        self.waterTexture = load_image('img/waterTexture.png')
+
+        #Water surface
+        self.surf = pygame.Surface([WIDTH, 162], pygame.SRCALPHA)
+        self.surf.fill((46,166,204))
+
+        #Rect for water and positioning
+        self.rect = self.surf.get_rect()
+        self.rect.bottomleft = [0, HEIGHT]
+
+        #Surface used to render reflections of objects like backgrounds, boat etc.
+        self.reflectionSurf = pygame.Surface((WIDTH + 4, HEIGHT//2))
+        self.reflectionSurf.fill((46,166,204))
+
+        #Reflection rect and positioning
+        self.reflectionRect = self.reflectionSurf.get_rect()
+        self.reflectionRect.topleft = [0,0]
+
+        #Reflection opacity variables
+        self.setReflectionAlpha = 80
+        self.reflectionSurfAlpha = 255
+        self.reflectionAlpha = 80
+        self.bgReflectionAlpha = 80
+
+    def adjustSurf(self):
+        self.surf = pygame.Surface([WIDTH - currentScreen.camera.pos[0], 162 - currentScreen.camera.pos[1]])
+        
+        self.surf.fill((46,166,204))
+
+        self.rect = self.surf.get_rect()
+        self.rect.bottomleft = [0, HEIGHT - currentScreen.camera.pos[1]]
+
+    def renderBackgroundReflections(self):
+        currentScreen.backgroundReflections = []
+        for bg in currentScreen.backgrounds:
+            bgReflection = pygame.transform.flip(bg[0], False, True)
+            bgReflection.set_alpha(self.setReflectionAlpha)
+            currentScreen.backgroundReflections.append(bgReflection)
+
+        for i, bgR in enumerate(currentScreen.backgroundReflections):
+            bgR.set_alpha(self.bgReflectionAlpha)
+            self.surf.blit(bgR, [WIDTH*i, -160])
+        currentScreen.gameScreenS.blit(self.surf, self.rect)
+
+    def renderSurfaceReflections(self):
+
+        boatReflection = pygame.transform.flip(currentScreen.boat.imageR, False, True)
+
+        self.reflectionSurf.fill((46,166,204))
+
+        bgShowing = 0
+        for i, bgR in enumerate(currentScreen.backgroundReflections):
+            if i*WIDTH - WIDTH <= -currentScreen.camera.pos[0] or i*WIDTH >= -currentScreen.camera.pos[0]:
+                bgShowing += 1
+                bgR.blit(boatReflection, [currentScreen.boat.rect.left-WIDTH*i,160])
+                self.reflectionSurf.blit(bgR, [WIDTH*i + currentScreen.camera.pos[0] + 2, -185])
+        
+        self.reflectionSurf.set_alpha(self.reflectionSurfAlpha)
+        currentScreen.gameScreenS.blit(self.reflectionSurf, self.reflectionRect)
+
 
 class Camera:
     def __init__(self, pos):
@@ -1014,6 +1027,39 @@ class CapacityVisual:
         capacityTextRect.center = capacityTextPos
         currentScreen.gameScreenS.blit(self.text, capacityTextRect)
         
+class SilonVisual:
+    def __init__(self):
+        self.font = pygame.font.Font("font/pixelFont.ttf", 70)
+        self.text = self.font.render("Out of line", False, [255,255,255])
+
+        self.rect = self.text.get_rect()
+
+        self.opacity = 0
+        self.fade = 0
+
+        self.outOfSilon = False
+    
+    def fadeHandler(self):
+        if self.opacity > 200:
+            self.fade = -10
+        elif self.opacity < 50 and self.outOfSilon:
+            self.fade = 10
+
+        if self.opacity >= 0:
+            self.opacity += self.fade
+        else:
+            self.opacity = -1
+
+    def update(self):
+        self.fadeHandler()
+
+        self.rect.center = (currentScreen.boat.baitRect.centerx, currentScreen.boat.baitRect.centery - 100)
+        self.text.set_alpha(self.opacity)
+
+    def draw(self):
+        print(self.opacity, self.rect.center, self.outOfSilon)
+        currentScreen.gameScreenS.blit(self.text, self.rect)
+
 class WaterSplash:
     def __init__(self, pos = [100,100], sizeX = -1, sizeY = -1):
         self.imageNames = [imgName for imgName in os.listdir(f'img/waterSplash') if imgName.endswith(".png")]
@@ -1159,7 +1205,7 @@ class Fish:
                 self.directionY = -1
                 self.upDown = -1
 
-            if self.rect.top <= currentScreen.waterRect.top + 100:
+            if self.rect.top <= currentScreen.water.rect.top + 100:
                 self.directionY = 1
                 self.upDown = random.choice([-1,1])
                 # print("OUT OF WATER")
@@ -1173,7 +1219,7 @@ class Fish:
             self.rectR = self.imageR.get_rect()
             self.rectR.center = [self.x, self.y]
 
-            if not self.caught and not self.drop and self.rectR.top + 5 < currentScreen.waterRect.top:
+            if not self.caught and not self.drop and self.rectR.top + 5 < currentScreen.water.rect.top:
                 if self.ws == None:
                     self.ws = WaterSplash(self.rectR.center, self.rectR.width * 2.5, self.scale)
 
@@ -1218,7 +1264,7 @@ class Fish:
                 self.rect.center = [self.x + self.imageR.get_width(), self.y]
                 currentScreen.gameScreenS.blit(self.imageR, self.rect)
             else:
-                if self.y < currentScreen.waterRect.top:
+                if self.y < currentScreen.water.rect.top:
                     self.y += 3
                     self.x += 2
                     self.rect.center = [self.x, self.y]
@@ -1234,6 +1280,7 @@ class Boat:
     def __init__(self):
         global currentScreen
         self.image = load_image("img/boat1.png", 2.25)
+        self.imageR = self.image.copy()
         self.rect = self.image.get_rect()
         self.staticRect = self.image.get_rect()
 
@@ -1300,18 +1347,18 @@ class Boat:
         self.scareRadius = pygame.Rect(0, 0, 400, 300)
 
     def update(self, isFishing, baitSpeed = 0):
-        self.defaultY = currentScreen.waterRect.top + 200
+        self.defaultY = currentScreen.water.rect.top + 200
 
         self.x += -self.speed * currentScreen.camera.dirX
-        self.y = currentScreen.waterRect.top + self.rect.height//2 - self.rect.height//5
+        self.y = currentScreen.water.rect.top + self.rect.height//2 - self.rect.height//5
         self.defaultBaitPos[0] += -self.speed * currentScreen.camera.dirX
 
         self.currentSilon = math.dist(self.defaultBaitPos, self.endingPoint)/100
 
         if self.currentSilon > self.silonMax-0.2:
-            currentScreen.outOfSilon = True
+            currentScreen.silonVisual.outOfSilon = True
         else:
-            currentScreen.outOfSilon = False
+            currentScreen.silonVisual.outOfSilon = False
 
         depth = int(((self.defaultBaitPos[1] + self.baitY)/100-2.7)*10)/10
         if depth < 0:
@@ -1360,7 +1407,7 @@ class Boat:
         if self.throwingBait:
             # if self.baitY < 100:
             # print(self.prutRect.top - 5, currentScreen.waterRect.top)
-            if self.baitRect.top - 5 < currentScreen.waterRect.top:
+            if self.baitRect.top - 5 < currentScreen.water.rect.top:
                 # throwPower = 0
                 # print(self.ws)
                 self.baitY += 3 - self.throwPower
@@ -1375,7 +1422,7 @@ class Boat:
             else:
                 self.throwingBait = False
             
-            if self.baitRect.top + 10 >= currentScreen.waterRect.top:
+            if self.baitRect.top + 10 >= currentScreen.water.rect.top:
                 if self.ws == None:
                     self.ws = WaterSplash([self.baitRect.centerx, self.baitRect.centery+self.baitRect.h])
         elif isFishing and not self.rollBack and not self.caughtFish:
@@ -1427,7 +1474,7 @@ class Boat:
             pygame.draw.rect(currentScreen.gameScreenS, [0,255,0], self.chargingBar)
         if isFishing and not self.caughtFish:
             currentScreen.gameScreenS.blit(self.depthText, self.depthTextRect)
-        if not self.baitRect.colliderect(currentScreen.waterRect) and currentScreen.isFishing and not self.throwingBait and not self.caughtFish and not self.rollBack:
+        if not self.baitRect.colliderect(currentScreen.water.rect) and currentScreen.isFishing and not self.throwingBait and not self.caughtFish and not self.rollBack:
             self.rollBack = True
             self.fromPos = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
             self.gotoPos = self.defaultBaitPos.copy()
@@ -1606,7 +1653,7 @@ class FishHandler:
         #Spawn a random fish
         #############
 
-        currentScreen.fishes.append(Fish(currentScreen.region, currentScreen.fishLevels, currentScreen.waterRect.top, currentScreen.endOfMap, currentScreen.fishNames))
+        currentScreen.fishes.append(Fish(currentScreen.region, currentScreen.fishLevels, currentScreen.water.rect.top, currentScreen.endOfMap, currentScreen.fishNames))
         currentScreen.totalFishAmount += 1
 
     def deleteFish(self, fish : Fish):
