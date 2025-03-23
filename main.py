@@ -362,12 +362,12 @@ class GameScreen(Screen):
         self.shops = load_image(f'img/{self.region}/backgrounds/obchody.png')
         
         #Image cointaing fishing surface part of a specified region
-        self.background = load_image(f'img/{self.region}/backgrounds/pozadie/000.png')
+        self.background = load_image(f'img/{self.region}/backgrounds/pozadie.png')
 
         #Array containing all backgrounds - useful for optimalized rendering
         self.backgrounds = [[self.background.copy(), self.background.get_rect()] for i in range(2)]
         for i in range(len(self.backgrounds)):
-            self.backgrounds[i][1].topleft = [i*WIDTH, 0]
+            self.backgrounds[i][1].topleft = [i*WIDTH, -270]
 
         #Harbor image
         self.harbor = load_image(f'img/{self.region}/backgrounds/harbor.png')
@@ -553,40 +553,20 @@ class GameScreen(Screen):
 
         self.water.adjustSurf()
 
-        # self.backgroundReflections = []
-        # for bg in self.backgrounds:
-        #     bgReflection = pygame.transform.flip(bg[0], False, True)
-        #     bgReflection.set_alpha(self.setReflectionAlpha)
-        #     self.backgroundReflections.append(bgReflection)
-
         if not self.isFishing or not self.boat.wsFinished:
-            if self.water.reflectionSurfAlpha < 255:
-                self.water.reflectionSurfAlpha += 13
+            if self.water.frontReflectionSurfAlpha < 255:
+                self.water.frontReflectionSurfAlpha += 13
                 print("REFLECT")
             if self.water.bgReflectionAlpha < self.water.setReflectionAlpha:
                 self.water.bgReflectionAlpha += 4
         else:
-            if self.water.reflectionSurfAlpha > 0:
-                self.water.reflectionSurfAlpha -= 13
+            if self.water.frontReflectionSurfAlpha > 0:
+                self.water.frontReflectionSurfAlpha -= 13
             if self.water.bgReflectionAlpha > 0:
                 self.water.bgReflectionAlpha -= 4
 
-        
-
-
-        
-
         self.gameScreenS.blit(self.harbor, self.harborRect)
         screenS.blit(self.shops, self.shopsRect)
-        # if not (self.transition or self.showingShops):
-        #     self.gameScreenS.blit(self.moneyBar, self.moneyRect)
-        #     moneyTextPos = self.moneyRect.center
-        #     moneyTextRect = self.moneyText.get_rect()
-        #     moneyTextRect.center = moneyTextPos
-        #     moneyTextRect.left += 2
-        #     self.gameScreenS.blit(self.moneyText, moneyTextRect)
-
-
 
         if -self.boat.staticRect.centerx + WIDTH >= WIDTH//2:
             self.leftPressed = False
@@ -599,14 +579,15 @@ class GameScreen(Screen):
         if self.camera.pos[1] + HEIGHT >= HEIGHT:
             self.downPressed = False
 
-        if self.leftPressed:
-            self.camera.dirX = 1
-            self.rightPressed = False
-        elif self.rightPressed:
-            self.camera.dirX = -1
-            self.leftPressed = False
-        else:
-            self.camera.dirX = 0
+        if not self.boat.rollBack:
+            if self.leftPressed:
+                self.camera.dirX = 1
+                self.rightPressed = False
+            elif self.rightPressed:
+                self.camera.dirX = -1
+                self.leftPressed = False
+            else:
+                self.camera.dirX = 0
 
         if not self.boat.caughtFish:
             if self.downPressed:
@@ -619,6 +600,9 @@ class GameScreen(Screen):
                 self.camera.dirY = 0
         else:
             self.camera.dirX = 0
+
+        if self.boat.rollBack:
+            self.camera.dirY = 0
 
         if self.camera.pos[0] <= 0 and self.camera.pos[0] - WIDTH >= -self.endOfMap:
             self.camera.pos[0] += self.camera.dirX * (self.boat.speed if (self.boat.staticRect.centerx - abs(self.camera.pos[0])) <= 250 or abs(self.boat.staticRect.centerx - abs(self.camera.pos[0] - WIDTH)) <= 250 else self.camera.speed)
@@ -748,16 +732,16 @@ class Water:
         self.rect.bottomleft = [0, HEIGHT]
 
         #Surface used to render reflections of objects like backgrounds, boat etc.
-        self.reflectionSurf = pygame.Surface((WIDTH + 4, HEIGHT//2))
-        self.reflectionSurf.fill((46,166,204))
+        self.frontReflectionSurf = pygame.Surface((WIDTH + 4, HEIGHT))
+        self.frontReflectionSurf.fill((46,166,204))
 
         #Reflection rect and positioning
-        self.reflectionRect = self.reflectionSurf.get_rect()
+        self.reflectionRect = self.frontReflectionSurf.get_rect()
         self.reflectionRect.topleft = [0,0]
 
         #Reflection opacity variables
         self.setReflectionAlpha = 80
-        self.reflectionSurfAlpha = 255
+        self.frontReflectionSurfAlpha = 255
         self.reflectionAlpha = 80
         self.bgReflectionAlpha = 80
 
@@ -773,29 +757,34 @@ class Water:
         currentScreen.backgroundReflections = []
         for bg in currentScreen.backgrounds:
             bgReflection = pygame.transform.flip(bg[0], False, True)
+
             bgReflection.set_alpha(self.setReflectionAlpha)
+
             currentScreen.backgroundReflections.append(bgReflection)
 
         for i, bgR in enumerate(currentScreen.backgroundReflections):
             bgR.set_alpha(self.bgReflectionAlpha)
-            self.surf.blit(bgR, [WIDTH*i, -160])
+            self.surf.blit(bgR, [WIDTH*i, -160 + 70])
+
         currentScreen.gameScreenS.blit(self.surf, self.rect)
 
     def renderSurfaceReflections(self):
 
         boatReflection = pygame.transform.flip(currentScreen.boat.imageR, False, True)
 
-        self.reflectionSurf.fill((46,166,204))
+        self.frontReflectionSurf.fill((46,166,204))
 
         bgShowing = 0
         for i, bgR in enumerate(currentScreen.backgroundReflections):
             if i*WIDTH - WIDTH <= -currentScreen.camera.pos[0] or i*WIDTH >= -currentScreen.camera.pos[0]:
                 bgShowing += 1
-                bgR.blit(boatReflection, [currentScreen.boat.rect.left-WIDTH*i,160])
-                self.reflectionSurf.blit(bgR, [WIDTH*i + currentScreen.camera.pos[0] + 2, -185])
-        
-        self.reflectionSurf.set_alpha(self.reflectionSurfAlpha)
-        currentScreen.gameScreenS.blit(self.reflectionSurf, self.reflectionRect)
+                boatReflectionRect = boatReflection.get_rect()
+                boatReflectionRect.left = currentScreen.boat.rect.left-WIDTH*i
+                boatReflectionRect.top = 160-77
+                bgR.blit(boatReflection, boatReflectionRect)
+                self.frontReflectionSurf.blit(bgR, [WIDTH*i + currentScreen.camera.pos[0] + 2, -185 + 77])
+        self.frontReflectionSurf.set_alpha(self.frontReflectionSurfAlpha)
+        currentScreen.gameScreenS.blit(self.frontReflectionSurf, self.reflectionRect)
 
 
 class Camera:
