@@ -659,9 +659,6 @@ class GameScreen(Screen):
 
             if key == pygame.K_d:
                 self.rightPressed = True
-
-            # if key == pygame.K_s and self.isFishing:
-                # self.upPressed = True
             
             if key == pygame.K_w and self.isFishing:
                 self.upPressed = True
