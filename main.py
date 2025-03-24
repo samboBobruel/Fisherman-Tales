@@ -459,6 +459,15 @@ class GameScreen(Screen):
 
         self.silonVisual = SilonVisual()
 
+    def stopInput(self):
+        self.leftPressed = False
+        self.rightPressed = False
+        self.topPressed = False
+        self.downPressed = False
+        self.boat.dirX = 0
+        self.camera.dirX = 0
+        self.camera.dirY = 0
+
     ##########
     #Updation functions 
     ##########
@@ -669,6 +678,7 @@ class GameScreen(Screen):
                 elif not self.boat.throwingBait and not self.boat.charging:
                     if not self.boat.rollBack:
                         self.boat.rollBack = True
+                        self.stopInput()
                     else:
                         self.boat.rollBack = False
                     self.boat.fromPos = list(self.boat.baitRect.center)
@@ -810,6 +820,8 @@ class Camera:
         else:
             self.pos[0] = -currentScreen.boat.baitRect.centerx + WIDTH//2
         self.pos[1] = -currentScreen.boat.baitRect.centery + HEIGHT//2
+        if self.pos[1] > 0:
+            self.pos[1] = 0
 
     def checkCameraBoundsWhileFishing(self):
         ############
@@ -849,6 +861,9 @@ class Camera:
         else:
             if self.pos[1] < 0:
                 self.pos[1] += 3
+        
+        if self.pos[1] > 0:
+            self.pos[1] = 0
 
 class HarborTextVisual:
     def __init__(self):
@@ -1043,7 +1058,6 @@ class SilonVisual:
         self.text.set_alpha(self.opacity)
 
     def draw(self):
-        print(self.opacity, self.rect.center, self.outOfSilon)
         currentScreen.gameScreenS.blit(self.text, self.rect)
 
 class WaterSplash:
@@ -1194,7 +1208,6 @@ class Fish:
             if self.rect.top <= currentScreen.water.rect.top + 100:
                 self.directionY = 1
                 self.upDown = random.choice([-1,1])
-                # print("OUT OF WATER")
             self.rect.center = [self.x, self.y]
 
             # self.angle += self.directionY/20
@@ -1215,8 +1228,6 @@ class Fish:
                 else:
                     self.ws = None
 
-            # if self.rect.right > abs(currentScreen.camera.pos[0]) and self.rect.left < WIDTH + abs(currentScreen.camera.pos[0]) and self.rect.bottom > abs(currentScreen.camera.pos[1]) and self.rect.top < HEIGHT + abs(currentScreen.camera.pos[1]):
-            # print(self.rect.left, WIDTH + abs(currentScreen.camera.pos[0]))
                 
 
         self.hitBoxRect.centerx = self.rect.centerx + self.rect.width//2*self.direction
@@ -1239,7 +1250,6 @@ class Fish:
                 pygame.draw.rect(currentScreen.gameScreenS, [255,0,0], self.rect, 2)
         else:
             if not self.drop:
-                # print("BOA", random.randint(100,10000))
                 self.x = self.baitPos[0]
                 self.y = self.baitPos[1]
                 if self.direction == 1:
@@ -1278,6 +1288,9 @@ class Boat:
         self.bait = load_image("img/bait.png")
         # self.bait.fill((0,255,0))
         self.baitRect = self.bait.get_rect()
+
+        self.baitStartFall = False
+        self.baitFallingAfterRollback = False
 
         self.ws = None
         self.wsFinished = False
@@ -1353,8 +1366,6 @@ class Boat:
         self.depthTextRect = self.depthText.get_rect()
         self.depthTextRect.center = [self.baitRect.centerx, self.baitRect.centery + 50]
 
-        # print(self.currentSilon)
-
         if self.angle < -self.maxDiff:
             self.directionY = 1
         if self.angle > self.maxDiff:
@@ -1370,13 +1381,24 @@ class Boat:
         self.rect.top = self.y+self.yM-100
 
         self.staticRect.center = (self.x, self.y)
-        # self.baitRect.center = (self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY)
         self.baitRect.center = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
-        if not isFishing:
+        if not currentScreen.isFishing:
             self.baitX = 0
-            self.baitY = 0
+            
+            if not self.baitStartFall:
+                self.baitY = -35
+                self.baitStartFall = True
+            
+            if self.baitY < 0:
+                self.baitFallingAfterRollback = True
+            else:
+                self.baitFallingAfterRollback = False
+            # self.baitFallingAfterRollback = True if self.baitY < 0 else False
             # self.defaultBaitPos = [self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY]
             self.defaultBaitPos = list(self.prutRect.topright)
+
+            if self.baitFallingAfterRollback:
+                self.baitY += 1
 
         if self.charging:
             self.throwPower += 0.05
@@ -1388,22 +1410,14 @@ class Boat:
         elif not self.throwingBait:
             self.throwPower = self.minThrowPower
 
-        # print("TP", self.throwPower)
-
         if self.throwingBait:
-            # if self.baitY < 100:
-            # print(self.prutRect.top - 5, currentScreen.waterRect.top)
             if self.baitRect.top - 5 < currentScreen.water.rect.top:
-                # throwPower = 0
-                # print(self.ws)
+
                 self.baitY += 3 - self.throwPower
-                # print(self.baitY)
-                # if not self.baitRect.colliderect(currentScreen.waterRect):
+
+
                 self.baitX = self.baitX + math.cos(math.radians(self.baitY*0.70))*(6 + self.throwPower)
-                # print("MOVING", self.baitY-5 < currentScreen.waterRect.top)
-                # print(self.baitX, self.baitY)
-                # self.baitX = math.sin(math.radians(self.baitY*4))
-                # self.baitRect.center = (self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY)
+
                 self.baitRect.center = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
             else:
                 self.throwingBait = False
@@ -1462,6 +1476,9 @@ class Boat:
             currentScreen.gameScreenS.blit(self.depthText, self.depthTextRect)
         if not self.baitRect.colliderect(currentScreen.water.rect) and currentScreen.isFishing and not self.throwingBait and not self.caughtFish and not self.rollBack:
             self.rollBack = True
+
+            currentScreen.stopInput()
+
             self.fromPos = [self.prutRect.right + self.baitX, self.prutRect.top + 50 + self.baitY]
             self.gotoPos = self.defaultBaitPos.copy()
         if not self.caughtFish:
@@ -1480,22 +1497,17 @@ class Boat:
                 direction = (pygame.Vector2(self.gotoPos) - pygame.Vector2(self.fromPos)).normalize()
                 self.baitX += direction[0] * 5
                 self.baitY += direction[1] * 5
-                # print("direction", direction)
-                # self.baitRect.center = (self.staticRect.centerx + 100 + self.baitX, self.staticRect.centery - 50 + self.baitY)
+
             else:
                 currentScreen.isFishing = False
                 currentScreen.usePressed = False
                 currentScreen.camera.dirY = 0
                 self.throwingBait = False
-                self.baitRect.center = self.defaultBaitPos.copy()
                 if self.caughtFish:
                     if currentScreen.capacityVisual.capacity < currentScreen.capacityVisual.maxCapacity:
                         self.caughtFish = False
-                        print(currentScreen.fishInventoryDict)
-                        print(currentScreen.fishes[self.caughtFishIndex].name)
                         currentScreen.fishInventoryDict[currentScreen.fishes[self.caughtFishIndex].name] += 1
                         currentScreen.totalFishAmount -= 1
-                        print(currentScreen.fishInventoryDict, currentScreen.totalFishAmount)
                         currentScreen.fishes.pop(self.caughtFishIndex)
                         self.caughtFishIndex = -1
                         currentScreen.capacityVisual.add()
@@ -1706,6 +1718,7 @@ class FishInventory:
         self.oldPos = []
 
     def click(self, pos):
+        print("CLICK")
         cursorRect = pygame.Rect(pos[0], pos[1]-self.iRect.top-self.cRect.top, 1, 1)
         collide = cursorRect.collidelist([item.backgroundRect for item in self.items])
         if collide != -1:
@@ -1726,7 +1739,6 @@ class FishInventory:
         self.scrolling = True
 
     def update(self):
-        # print(self.cy, random.randint(0,1000))
         
         self.iRect.center = (-currentScreen.camera.pos[0] + WIDTH//2, -currentScreen.camera.pos[1] + HEIGHT//2)
 
@@ -1736,7 +1748,6 @@ class FishInventory:
             self.cRect.topleft = (self.cRect.left, self.cRect.top+3)
         else:
             self.cRect.topleft = (self.cRect.left, self.cRect.top)
-        # print(self.cRect)
 
         if self.scrolling:
             if abs(self.oldPos[1] - self.cRect.topleft[1]) > 40:
@@ -1800,10 +1811,6 @@ class InventoryItem:
         self.background.blit(self.amountText, self.amountTextRect)
         surf.blit(self.background, self.backgroundRect)
 
-        # mousePos = pygame.mouse.get_pos()
-        # if mousePos[0] > self.iconRect.left and mousePos[0] < self.iconRect.left + self.iconRect.width and mousePos[1] > self.iconRect.top and mousePos[1] < self.iconRect.top + self.iconRect.height
-        #     print(self.name)
-
 class Button:
     def __init__(self, image, clickedImage, function: Callable, pos = [WIDTH//2, HEIGHT//2]):
         self.img = load_image(image)
@@ -1865,9 +1872,13 @@ while running:
                     json.dump(boatData, boatFile)
 
             running = False
-    
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            currentScreen.mouseButtonDown()
+
+        if event.type == pygame.MOUSEWHEEL:
+            if isinstance(currentScreen, GameScreen):
+                currentScreen.fishInventory.scroll(event.y)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                currentScreen.mouseButtonDown()
         
         if event.type == pygame.MOUSEBUTTONUP:
             currentScreen.mouseButtonUp()
@@ -1879,12 +1890,9 @@ while running:
 
         if event.type == pygame.KEYUP:
             currentScreen.keyUp(event.key)
-        
-        if event.type == pygame.MOUSEWHEEL:
-            if isinstance(currentScreen, GameScreen):
-                currentScreen.fishInventory.scroll(event.y)
 
-    # print((WIDTH - currentScreen.camera.pos[0] + 2, HEIGHT - currentScreen.camera.pos[1] + 2))
+
+
     if type(currentScreen) in [MenuScreen, OptionsScreen]:
         screenS = pygame.Surface((WIDTH - currentScreen.screenPos[0] + 2, HEIGHT - currentScreen.screenPos[1] + 2))
     else:
@@ -1897,7 +1905,6 @@ while running:
 
     screenS.fill(color)
 
-    # print(cProfile.run('currentScreen.update()'))
     currentScreen.update()
 
     if type(currentScreen) in [MenuScreen, OptionsScreen]:
