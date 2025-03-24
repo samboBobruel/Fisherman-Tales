@@ -33,6 +33,27 @@ def genFishNamesForRarity(fishNames, rarities):
             final.append(fishName)
     return final
 
+def saveData():
+    with open("inventorySave.json", "w") as inventoryFile:
+        inventoryData = dict()
+        inventoryData["inventory"] = currentScreen.fishInventoryDict
+        inventoryData["money"] = currentScreen.moneyVisual.money
+        json.dump(inventoryData, inventoryFile)
+
+    with open("boatSave.json", "w") as boatFile:
+        boatData = dict()
+        boatData["boatPos"] = [currentScreen.boat.x, currentScreen.boat.y]
+        if currentScreen.isFishing:
+            boatData["screenPos"] = [-currentScreen.boat.x + WIDTH//2, -currentScreen.boat.y + HEIGHT//2]
+        else:
+            boatData["screenPos"] = currentScreen.camera.pos
+
+        json.dump(boatData, boatFile)
+
+    with open("fishDiscovered.json", "w") as fishDFile:
+        fishDData = currentScreen.discoveredFishes
+        json.dump(fishDData, fishDFile)
+
 def screenSetup():
     global screen, screenBuffer, screenS, WIDTH, HEIGHT, screenX, screenY
     resolutionScale = 2
@@ -1897,25 +1918,7 @@ while running:
         if event.type == pygame.QUIT:
             if isinstance(currentScreen, GameScreen):
                 #Saving inventory
-                with open("inventorySave.json", "w") as inventoryFile:
-                    inventoryData = dict()
-                    inventoryData["inventory"] = currentScreen.fishInventoryDict
-                    inventoryData["money"] = currentScreen.moneyVisual.money
-                    json.dump(inventoryData, inventoryFile)
-
-                with open("boatSave.json", "w") as boatFile:
-                    boatData = dict()
-                    boatData["boatPos"] = [currentScreen.boat.x, currentScreen.boat.y]
-                    if currentScreen.isFishing:
-                        boatData["screenPos"] = [-currentScreen.boat.x + WIDTH//2, -currentScreen.boat.y + HEIGHT//2]
-                    else:
-                        boatData["screenPos"] = currentScreen.camera.pos
-
-                    json.dump(boatData, boatFile)
-
-                with open("fishDiscovered.json", "w") as fishDFile:
-                    fishDData = currentScreen.discoveredFishes
-                    json.dump(fishDData, fishDFile)
+                saveData()
 
             running = False
 
