@@ -330,6 +330,9 @@ class GameScreen(Screen):
         #Loading fish inventory from inventory save
         self.fishInventoryDict = self.inventorySave["inventory"]
 
+        #Loading discovered fishes
+        self.discoveredFishes = json.load(open("fishDiscovered.json"))
+
         #Levels at which fishes spawn
         levelsJson = open("fishLevels.json")
         self.fishLevels = json.load(levelsJson)
@@ -1101,8 +1104,6 @@ class Fish:
         self.name = self.name.removesuffix(".png")
         self.levelRange = fishLevels[self.name]
         self.levelRange = [self.levelRange[0] * 100 + waterY, self.levelRange[1] * 100 + waterY]
-        
-        
 
         self.rect = self.image.get_rect()
         self.hitBox = pygame.Surface((10*self.scale,10*self.scale))
@@ -1157,7 +1158,9 @@ class Fish:
                 self.changeDirectionY(-1)
             else:
                 self.changeDirectionY(1)
-        self.scared = True
+                
+        if self.name != "green_Fish" or self.name != "purple_Fish":
+            self.scared = True
 
     def changeDirectionX(self, direction = 0, turnPosDis = None):
         if direction == 0:
@@ -1507,8 +1510,9 @@ class Boat:
                     if currentScreen.capacityVisual.capacity < currentScreen.capacityVisual.maxCapacity:
                         self.caughtFish = False
                         currentScreen.fishInventoryDict[currentScreen.fishes[self.caughtFishIndex].name] += 1
-                        currentScreen.totalFishAmount -= 1
-                        currentScreen.fishes.pop(self.caughtFishIndex)
+                        currentScreen.fishHandler.deleteFish(currentScreen.fishes[self.caughtFishIndex])
+                        # currentScreen.totalFishAmount -= 1
+                        # currentScreen.fishes.pop(self.caughtFishIndex)
                         self.caughtFishIndex = -1
                         currentScreen.capacityVisual.add()
                     else:
@@ -1659,6 +1663,11 @@ class FishHandler:
         #Delete a fish
         #############
 
+        print(fish.name)
+
+        if fish.caught and not currentScreen.discoveredFishes[fish.name]:
+            currentScreen.discoveredFishes[fish.name] = True
+
         currentScreen.fishes.remove(fish)
         currentScreen.totalFishAmount -= 1
 
@@ -1771,11 +1780,27 @@ class FishInventory:
 
 class InventoryItem:
     def __init__(self, width, height, y, image, name):
-        self.rawName = name
-        self.name = name.removesuffix(".png")
-        self.name = list(self.name.replace("_", " "))
-        self.name[0] = self.name[0].upper()
-        self.name = "".join(self.name)
+
+        self.image = image
+
+        self.fullName = name
+        self.rawName = self.fullName.removesuffix(".png")
+
+        if currentScreen.discoveredFishes[self.rawName]:
+            self.name = list(self.rawName.replace("_", " "))
+            self.name[0] = self.name[0].upper()
+            self.name = "".join(self.name)
+
+            self.icon = image
+            
+            self.discovered = True
+        else:
+            self.iconMask = pygame.mask.from_surface(image)
+            self.iconMask.invert()
+            self.icon = self.iconMask.to_surface()
+            self.icon.set_colorkey((255,255,255))
+
+            self.discovered = False
 
         self.width, self.height = width-10, height-5
         self.background = pygame.Surface((self.width, self.height))
@@ -1783,13 +1808,15 @@ class InventoryItem:
         self.backgroundRect = self.background.get_rect()
         self.backgroundRect.topleft = (5, y+5)
 
-        self.icon = image.copy()
         self.iconRect = self.icon.get_rect()
         self.iconRect.center = (height//2, height//2)
 
         self.font = pygame.font.Font(size=40)
 
-        self.nameText = self.font.render(self.name, False, [0,0,0])
+        if self.discovered:
+            self.nameText = self.font.render(self.name, False, [0,0,0])
+        else:
+            self.nameText = self.font.render("???", False, [0,0,0])
         self.nameTextRect = self.nameText.get_rect()
         self.nameTextRect.centerx = width//2
         self.nameTextRect.centery = height//2
@@ -1805,10 +1832,25 @@ class InventoryItem:
         self.amountTextRect.right = self.width - 30
         self.amountTextRect.centery = self.height//2
 
+        if currentScreen.discoveredFishes[self.rawName] and not self.discovered:
+            self.name = list(self.rawName.replace("_", " "))
+            self.name[0] = self.name[0].upper()
+            self.name = "".join(self.name)
+
+            self.nameText = self.font.render(self.name, False, [0,0,0])
+            self.nameTextRect = self.nameText.get_rect()
+            self.nameTextRect.centerx = self.width//2
+            self.nameTextRect.centery = self.height//2
+
+            self.icon = self.image
+
+            self.discovered = True
+
         self.background.fill((150,150,150))
         self.background.blit(self.icon, self.iconRect)
         self.background.blit(self.nameText, self.nameTextRect)
-        self.background.blit(self.amountText, self.amountTextRect)
+        if currentScreen.discoveredFishes[self.rawName]:
+            self.background.blit(self.amountText, self.amountTextRect)
         surf.blit(self.background, self.backgroundRect)
 
 class Button:
@@ -1870,6 +1912,10 @@ while running:
                         boatData["screenPos"] = currentScreen.camera.pos
 
                     json.dump(boatData, boatFile)
+
+                with open("fishDiscovered.json", "w") as fishDFile:
+                    fishDData = currentScreen.discoveredFishes
+                    json.dump(fishDData, fishDFile)
 
             running = False
 
