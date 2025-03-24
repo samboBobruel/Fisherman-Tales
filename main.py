@@ -456,6 +456,9 @@ class GameScreen(Screen):
         #Check for showing inventory
         self.fishInventoryShow = False 
 
+        #Check for showing in-game menu
+        self.menuShow = False
+
     def gameObjects(self):
         ###################
         # Objects in game
@@ -1811,6 +1814,122 @@ class FishInventory:
         self.inventory.blit(self.container, self.cRect)
         # self.inventory.blit(self.money, self.moneyRect)
         currentScreen.gameScreenS.blit(self.inventory, self.iRect)
+
+class InGameMenu:
+    def __init__(self):
+        global currentScreen
+        self.gapfromScreen = 100
+        self.width = WIDTH - self.gapfromScreen
+        self.height = HEIGHT - self.gapfromScreen
+
+        self.surf = pygame.Surface((self.width, self.height))
+        self.surf.fill((100,100,100))
+        self.iRect = self.surf.get_rect()
+        self.iRect.center = (WIDTH//2, HEIGHT//2)
+
+        self.container = pygame.Surface((self.width - self.gapfromScreen, self.height * 1.4))
+        self.container.fill((50,50,50))
+        self.cRect = self.container.get_rect()
+        self.cRect.topleft = (self.gapfromScreen//2, self.gapfromScreen//2)
+
+        self.font = pygame.font.Font(size=40)
+        
+        self.moveDown = False
+        self.moveUp = False
+
+        self.itemHeight = 100
+
+        fishPricesJson = open("fishPrices.json")
+
+        self.fishPrices = json.load(fishPricesJson)
+
+        self.items = []
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        self.scrolling = False
+        self.oldPos = []
+
+    def click(self, pos):
+        print("CLICK")
+        cursorRect = pygame.Rect(pos[0], pos[1]-self.iRect.top-self.cRect.top, 1, 1)
+        collide = cursorRect.collidelist([item.backgroundRect for item in self.items])
+        if collide != -1:
+            name = self.items[collide].rawName.removesuffix(".png")
+            if currentScreen.fishInventoryDict[name] > 0:
+                currentScreen.fishInventoryDict[name] -= 1
+                currentScreen.moneyVisual.add(self.fishPrices[name])
+                currentScreen.capacityVisual.remove()
+    
+    def scroll(self, direction):
+        if direction == 1:
+            self.moveUp = True
+            self.moveDown = False
+        else:
+            self.moveDown = True
+            self.moveUp = False
+        self.oldPos = self.cRect.topleft
+        self.scrolling = True
+
+    def update(self):
+        
+        self.iRect.center = (-currentScreen.camera.pos[0] + WIDTH//2, -currentScreen.camera.pos[1] + HEIGHT//2)
+
+        if self.moveDown and self.cRect.bottom > self.iRect.height - self.gapfromScreen//2:
+            self.cRect.topleft = (self.cRect.left, self.cRect.top-3)
+        elif self.moveUp and self.cRect.top < self.gapfromScreen//2:
+            self.cRect.topleft = (self.cRect.left, self.cRect.top+3)
+        else:
+            self.cRect.topleft = (self.cRect.left, self.cRect.top)
+
+        if self.scrolling:
+            if abs(self.oldPos[1] - self.cRect.topleft[1]) > 40:
+                self.scrolling = False
+                self.moveDown = False
+                self.moveUp = False
+
+        if len(self.items) == 0:
+            for i, fishName in enumerate(self.fishPrices.keys()):
+                fishImage = load_image(f'img/{currentScreen.region}/fish/{fishName}.png')
+                self.items.append(InventoryItem(self.cRect.w, self.itemHeight, i*self.itemHeight, fishImage, fishName))
+        
+        self.surf.fill((100,100,100))
+
+        for i in self.items:
+            i.update(self.container)
+
+        self.surf.blit(self.container, self.cRect)
+        # self.inventory.blit(self.money, self.moneyRect)
+        currentScreen.gameScreenS.blit(self.surf, self.iRect)
+
 
 class InventoryItem:
     def __init__(self, width, height, y, image, name):
