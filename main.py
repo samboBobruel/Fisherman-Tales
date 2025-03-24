@@ -483,6 +483,11 @@ class GameScreen(Screen):
 
         self.silonVisual = SilonVisual()
 
+        self.menuButton = Button("img/burgerButton.png", "img/burgerButtonClicked.png", self.openMenu)
+
+    def openMenu(self):
+        print("OPENED MENU")
+
     def stopInput(self):
         self.leftPressed = False
         self.rightPressed = False
@@ -664,6 +669,8 @@ class GameScreen(Screen):
 
         self.silonVisual.draw()
 
+        self.menuButton.update(update=True)
+
         screenS.blit(self.gameScreenS, self.gsPos)
 
         # if self.transition or self.showingShops:
@@ -747,6 +754,12 @@ class GameScreen(Screen):
     def mouseButtonDown(self):
         if self.fishInventoryShow:
             self.fishInventory.click(pygame.mouse.get_pos())
+        else:
+            self.menuButton.press()
+
+    def mouseButtonUp(self):
+        if not self.fishInventoryShow:
+            self.menuButton.click()
 
     def mouseScroll(self, e):
         if self.fishInventoryShow:
@@ -1885,24 +1898,38 @@ class Button:
         self.pressed = False
 
     def click(self):
-        mousePos = pygame.mouse.get_pos()
+        mousePos = list(pygame.mouse.get_pos())
+        if isinstance(currentScreen, GameScreen):
+            mousePos[0] -= currentScreen.camera.pos[0]
+            mousePos[1] -= currentScreen.camera.pos[1]
         if mousePos[0] > self.rect.x and mousePos[0] < self.rect.x + self.rect.width and mousePos[1] > self.rect.y and mousePos[1] < self.rect.y + self.rect.height and self.pressed:
             self.function()
         self.pressed = False
 
     def press(self):
-        mousePos = pygame.mouse.get_pos()
+        mousePos = list(pygame.mouse.get_pos())
+        if isinstance(currentScreen, GameScreen):
+            mousePos[0] -= currentScreen.camera.pos[0]
+            mousePos[1] -= currentScreen.camera.pos[1]
         if mousePos[0] > self.rect.x and mousePos[0] < self.rect.x + self.rect.width and mousePos[1] > self.rect.y and mousePos[1] < self.rect.y + self.rect.height:
             self.pressed = True
 
-    def update(self):
+    def update(self, update=False):
+        if update:
+            self.rect.topright = [-currentScreen.camera.pos[0] + WIDTH - 10, -currentScreen.camera.pos[1] + 10]
         self.draw()
 
     def draw(self):
         if not self.pressed:
-            screenS.blit(self.img, self.rect)
+            if isinstance(currentScreen, MenuScreen):
+                screenS.blit(self.img, self.rect)
+            elif isinstance(currentScreen, GameScreen):
+                currentScreen.gameScreenS.blit(self.img, self.rect)
         else:
-            screenS.blit(self.imgC, self.rect)
+            if isinstance(currentScreen, MenuScreen):
+                screenS.blit(self.imgC, self.rect)
+            elif isinstance(currentScreen, GameScreen):
+                currentScreen.gameScreenS.blit(self.imgC, self.rect)
  
 menuScreen = MenuScreen()
 gameScreen = GameScreen()
